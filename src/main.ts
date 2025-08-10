@@ -1,11 +1,11 @@
 import { EngineLoop } from "./engine/EngineLoop";
 import { AudioEngine } from "./audio/AudioEngine";
-import { DemoChamber } from "./chambers/demo/DemoChamber";
+import { LookingGlassChamber } from "./chambers/LookingGlassChamber";
 import { WitnessControls } from "./controls/WitnessControls";
 import { crossed } from "./utils/phaseUtils";
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
-const chamber = new DemoChamber(canvas);
+const chamber = new LookingGlassChamber(canvas);
 const audio = new AudioEngine();
 
 const controls = new WitnessControls(
