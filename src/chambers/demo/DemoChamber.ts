@@ -1,9 +1,13 @@
+import { WitnessNode } from "../../actors/WitnessNode";
+
 export class DemoChamber {
   // simple solar phase [0..1)
   public phase = 0;
   private phaseSpeed = 0.05; // cycles per second
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private witness: WitnessNode;
+  private sparkle = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;

@@ -1,11 +1,17 @@
 import { EngineLoop } from "./engine/EngineLoop";
 import { AudioEngine } from "./audio/AudioEngine";
 import { DemoChamber } from "./chambers/demo/DemoChamber";
+import { WitnessControls } from "./controls/WitnessControls";
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
 const chamber = new DemoChamber(canvas);
 const audio = new AudioEngine();
 
+const controls = new WitnessControls(
+  canvas,
+  (dx,dy) => chamber.setWitnessFacing(dx, dy),
+  (amt)   => chamber.thrustWitness(amt),
+);
 // simple UI wires
 const startBtn = document.getElementById("start-audio") as HTMLButtonElement;
 const pauseBtn = document.getElementById("pause") as HTMLButtonElement;
@@ -28,6 +34,12 @@ startBtn.addEventListener("click", async () => {
 
 pauseBtn.addEventListener("click", () => audio.pause());
 resumeBtn.addEventListener("click", () => audio.resume());
+
+// on scheduler: add a visual beat ping
+startBtn.addEventListener("click", async () => {
+  await audio.start();
+  audio.startScheduler(() => chamber.beatSparkle());
+});
 
 // boot
 bpmInput.dispatchEvent(new Event("input"));
