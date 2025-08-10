@@ -2,6 +2,7 @@ import { EngineLoop } from "./engine/EngineLoop";
 import { AudioEngine } from "./audio/AudioEngine";
 import { DemoChamber } from "./chambers/demo/DemoChamber";
 import { WitnessControls } from "./controls/WitnessControls";
+import { crossed } from "./utils/phaseUtils";
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
 const chamber = new DemoChamber(canvas);
@@ -29,8 +30,9 @@ bpmInput.addEventListener("input", () => {
 
 startBtn.addEventListener("click", async () => {
   await audio.start();
-  audio.startScheduler();
+  audio.startScheduler(() => chamber.beatSparkle());
 });
+
 
 pauseBtn.addEventListener("click", () => audio.pause());
 resumeBtn.addEventListener("click", () => audio.resume());
@@ -45,17 +47,19 @@ startBtn.addEventListener("click", async () => {
 bpmInput.dispatchEvent(new Event("input"));
 
 let prevPhase = chamber.phase;
-const thresholds = [0, 0.25, 0.5, 0.75]; // quarter-beats visual grid
+const thresholds = [0, 0.25, 0.5, 0.75];
 
 const loop = new EngineLoop({
   onUpdate: (dt) => {
     const before = chamber.phase;
     chamber.update(dt);
-    const cross = chamber.crossed(thresholds, before, chamber.phase);
-    // (Optional) could trigger visual sparkle on cross
+    const t = crossed(thresholds, before, chamber.phase);
+    if (t !== null) {
+      chamber.onBeat();
+    }
     prevPhase = chamber.phase;
   },
-  onRender: () => chamber.render(),
+ onRender: (alpha) => chamber.render(alpha),
 });
 
 loop.start();
