@@ -1,29 +1,14 @@
+// src/chambers/demo/DemoChamber.ts
+import { ChamberBase } from "../ChamberBase";
 import { WitnessNode } from "../../actors/WitnessNode";
 
-export class DemoChamber {
-  // simple solar phase [0..1)
-  public phase = 0;
-  private phaseSpeed = 0.05; // cycles per second
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
+export class DemoChamber extends ChamberBase {
+  phase = 0;
+  private phaseSpeed = 0.05;
   private witness: WitnessNode;
   private sparkle = 0;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    const c = canvas.getContext("2d");
-    if (!c) throw new Error("2D context not available");
-    this.ctx = c;
-    this.resize();
-    addEventListener("resize", () => this.resize(), { passive: true });
-    this.witness = new WitnessNode(() => this.canvas.getBoundingClientRect());
-    const b = this.canvas.getBoundingClientRect();
-    this.witness.x = b.width / 2; this.witness.y = b.height / 2;
-  }
-
-  setPhaseSpeed(cyclesPerSecond: number) { this.phaseSpeed = cyclesPerSecond; }
-
-  // Return true when phase crosses a beat grid (e.g., quarter-beats)
+// Return true when phase crosses a beat grid (e.g., quarter-beats)
   public crossed(thresholds: number[], prevPhase: number, currPhase: number): number | null {
     for (const t of thresholds) {
       const c = (prevPhase <= t && currPhase >= t) ||
@@ -33,20 +18,26 @@ export class DemoChamber {
     return null;
   }
 
-  setWitnessFacing(dx: number, dy: number) { this.witness.setFacing(dx, dy); }
-  thrustWitness(amt = 1) { this.witness.thrust(amt); }
 
-  update(dt: number) {
-    // existing phase update...
-    this.phase = (this.phase + this.phaseSpeed * dt) % 1;
+  constructor(canvas: HTMLCanvasElement, services?: any) {
+    super(canvas, services);
+    this.witness = new WitnessNode(() => this.canvas.getBoundingClientRect());
+    const b = this.canvas.getBoundingClientRect();
+    this.witness.x = b.width/2; this.witness.y = b.height/2;
+  }
+
+  setPhaseSpeed(v:number){ this.phaseSpeed = v; }
+  setWitnessFacing(dx:number,dy:number){ this.witness.setFacing(dx,dy); }
+  thrustWitness(amt=1){ this.witness.thrust(amt); }
+  beatSparkle(){ this.sparkle = 0.2; }
+
+  update(dt:number){
+    this.phase = (this.phase + this.phaseSpeed*dt) % 1;
     this.witness.update(dt);
     if (this.sparkle > 0) this.sparkle = Math.max(0, this.sparkle - dt);
   }
 
-  beatSparkle() { this.sparkle = 0.2; }
-
-
-  render() {
+render() {
     const { ctx, canvas } = this;
     const w = canvas.width, h = canvas.height;
 
@@ -100,13 +91,5 @@ export class DemoChamber {
     }
     this.witness.render(ctx);
 
-  }
-
-  private resize() {
-    const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
-    const rect = this.canvas.getBoundingClientRect();
-    this.canvas.width = Math.floor(rect.width * dpr);
-    this.canvas.height = Math.floor(rect.height * dpr);
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 }
