@@ -32,7 +32,8 @@ export class EngineLoop {
         this.onUpdate(this.fixedStep);
         this.accumulator -= this.fixedStep;
       }
-      this.onRender(dt);
+      const alpha = Math.min(1, this.accumulator / this.fixedStep);
+      this.onRender(alpha);
       this.rafId = requestAnimationFrame(loop);
     };
     loop();
