@@ -16,13 +16,12 @@ export class DemoChamber {
     this.ctx = c;
     this.resize();
     addEventListener("resize", () => this.resize(), { passive: true });
+    this.witness = new WitnessNode(() => this.canvas.getBoundingClientRect());
+    const b = this.canvas.getBoundingClientRect();
+    this.witness.x = b.width / 2; this.witness.y = b.height / 2;
   }
 
   setPhaseSpeed(cyclesPerSecond: number) { this.phaseSpeed = cyclesPerSecond; }
-
-  update(dt: number) {
-    this.phase = (this.phase + this.phaseSpeed * dt) % 1;
-  }
 
   // Return true when phase crosses a beat grid (e.g., quarter-beats)
   public crossed(thresholds: number[], prevPhase: number, currPhase: number): number | null {
@@ -33,6 +32,19 @@ export class DemoChamber {
     }
     return null;
   }
+
+  setWitnessFacing(dx: number, dy: number) { this.witness.setFacing(dx, dy); }
+  thrustWitness(amt = 1) { this.witness.thrust(amt); }
+
+  update(dt: number) {
+    // existing phase update...
+    this.phase = (this.phase + this.phaseSpeed * dt) % 1;
+    this.witness.update(dt);
+    if (this.sparkle > 0) this.sparkle = Math.max(0, this.sparkle - dt);
+  }
+
+  beatSparkle() { this.sparkle = 0.2; }
+
 
   render() {
     const { ctx, canvas } = this;
@@ -78,6 +90,16 @@ export class DemoChamber {
     ctx.arc(moonX, moonY, Math.max(5, r*0.035), 0, Math.PI * 2);
     ctx.fillStyle = "rgba(220, 230, 255, 0.95)";
     ctx.fill();
+
+     if (this.sparkle > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, this.sparkle * 5);
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+    this.witness.render(ctx);
+
   }
 
   private resize() {
