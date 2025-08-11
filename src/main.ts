@@ -12,8 +12,7 @@ const controls = new WitnessControls(
   canvas,
   (dx,dy) => chamber.setWitnessFacing(dx, dy),
   (amt)   => chamber.thrustWitness(amt),
-  () => ({ x: (chamber as any).getWitnessX?.() ?? (chamber as any).witness?.x,
-           y: (chamber as any).getWitnessY?.() ?? (chamber as any).witness?.y }),
+  () => chamber.getWitnessPos(), // <— new
 );
 
 // simple UI wires
@@ -33,7 +32,7 @@ bpmInput.addEventListener("input", () => {
 
 startBtn.addEventListener("click", async () => {
   await audio.start();
-  audio.startScheduler(() => chamber.beatSparkle());
+  audio.startScheduler(() => chamber.onBeat());
 });
 
 
@@ -43,7 +42,7 @@ resumeBtn.addEventListener("click", () => audio.resume());
 // on scheduler: add a visual beat ping
 startBtn.addEventListener("click", async () => {
   await audio.start();
-  audio.startScheduler(() => chamber.beatSparkle());
+  audio.startScheduler(() => chamber.onBeat());
 });
 
 // boot
@@ -62,6 +61,7 @@ const loop = new EngineLoop({
     }
     prevPhase = chamber.phase;
   },
+
  onRender: (alpha) => chamber.render(alpha),
 });
 
