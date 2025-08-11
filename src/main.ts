@@ -1,18 +1,20 @@
 import { EngineLoop } from "./engine/EngineLoop";
 import { AudioEngine } from "./audio/AudioEngine";
-import { DemoChamber } from "./chambers/demo/DemoChamber";
+import { LookingGlassChamber } from "./chambers/LookingGlassChamber";
 import { WitnessControls } from "./controls/WitnessControls";
 import { crossed } from "./utils/phaseUtils";
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
-const chamber = new DemoChamber(canvas);
+const chamber = new LookingGlassChamber(canvas);
 const audio = new AudioEngine();
 
 const controls = new WitnessControls(
   canvas,
   (dx,dy) => chamber.setWitnessFacing(dx, dy),
   (amt)   => chamber.thrustWitness(amt),
+  () => chamber.getWitnessPos(), // <— new
 );
+
 // simple UI wires
 const startBtn = document.getElementById("start-audio") as HTMLButtonElement;
 const pauseBtn = document.getElementById("pause") as HTMLButtonElement;
@@ -30,7 +32,7 @@ bpmInput.addEventListener("input", () => {
 
 startBtn.addEventListener("click", async () => {
   await audio.start();
-  audio.startScheduler(() => chamber.beatSparkle());
+  audio.startScheduler(() => chamber.onBeat());
 });
 
 
@@ -40,7 +42,7 @@ resumeBtn.addEventListener("click", () => audio.resume());
 // on scheduler: add a visual beat ping
 startBtn.addEventListener("click", async () => {
   await audio.start();
-  audio.startScheduler(() => chamber.beatSparkle());
+  audio.startScheduler(() => chamber.onBeat());
 });
 
 // boot
@@ -59,6 +61,7 @@ const loop = new EngineLoop({
     }
     prevPhase = chamber.phase;
   },
+
  onRender: (alpha) => chamber.render(alpha),
 });
 
