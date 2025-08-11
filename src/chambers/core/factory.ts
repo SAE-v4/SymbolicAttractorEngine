@@ -1,8 +1,8 @@
 // src/chambers/core/factory.ts
 import { ChamberBase } from "./ChamberBase";
 import { ChamberDefinition } from "./defs";
-import { WitnessNode } from "../actors/WitnessNode";
-import { crossed } from "../utils/phaseUtils";
+import { WitnessNode } from "../../actors/WitnessNode";
+import { crossed } from "../../utils/phaseUtils";
 
 export function buildChamber(canvas: HTMLCanvasElement, def: ChamberDefinition): ChamberBase {
   // Return a tiny subclass composed from the definition
