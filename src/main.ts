@@ -12,8 +12,8 @@ const audio = new AudioEngine();
 const chamber = buildChamber(canvas, lookingGlassDef);
 const controls = new WitnessControls(
   canvas,
-  (dx,dy)=> chamber.setWitnessFacing(dx,dy) as any,
-  (a)=> (chamber as any).thrustWitness?.(a),
+  (dx, dy) => chamber.setWitnessFacing(dx, dy) as any,
+  (a) => (chamber as any).thrustWitness?.(a),
   () => (chamber as any).getWitnessPos?.()
 );
 
@@ -37,7 +37,6 @@ startBtn.addEventListener("click", async () => {
   audio.startScheduler(() => chamber.onBeat());
 });
 
-
 pauseBtn.addEventListener("click", () => audio.pause());
 resumeBtn.addEventListener("click", () => audio.resume());
 
@@ -57,14 +56,17 @@ const loop = new EngineLoop({
   onUpdate: (dt) => {
     const before = chamber.phase;
     chamber.update(dt);
-    const t = crossed(thresholds, before, chamber.phase);
-    if (t !== null) {
-      chamber.onBeat();
-    }
+    // beat hook unchanged:
+    const t = crossed(
+      [0, 0.25, 0.5, 0.75],
+      before,
+      (chamber as any).phase ?? 0
+    );
+    if (t !== null) (chamber as any).onBeat?.();
     prevPhase = chamber.phase;
   },
 
- onRender: (alpha) => chamber.render(alpha),
+  onRender: (alpha) => chamber.render(alpha),
 });
 
 loop.start();
