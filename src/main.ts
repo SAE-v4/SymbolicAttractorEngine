@@ -12,7 +12,10 @@ const controls = new WitnessControls(
   canvas,
   (dx,dy) => chamber.setWitnessFacing(dx, dy),
   (amt)   => chamber.thrustWitness(amt),
+  () => ({ x: (chamber as any).getWitnessX?.() ?? (chamber as any).witness?.x,
+           y: (chamber as any).getWitnessY?.() ?? (chamber as any).witness?.y }),
 );
+
 // simple UI wires
 const startBtn = document.getElementById("start-audio") as HTMLButtonElement;
 const pauseBtn = document.getElementById("pause") as HTMLButtonElement;

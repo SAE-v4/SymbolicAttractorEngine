@@ -23,12 +23,15 @@ export abstract class ChamberBase {
     removeEventListener("resize", this.resize as any);
   }
 
+ protected vp = { w: 0, h: 0, dpr: 1 };
+
   protected resize = () => {
     const dpr = Math.max(1, Math.min(2, devicePixelRatio || 1));
     const rect = this.canvas.getBoundingClientRect();
-    this.canvas.width = Math.floor(rect.width * dpr);
+    this.canvas.width  = Math.floor(rect.width * dpr);
     this.canvas.height = Math.floor(rect.height * dpr);
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // now draw in CSS px
+    this.vp = { w: rect.width, h: rect.height, dpr };
     this.onResize();
   };
 
