@@ -1,18 +1,20 @@
 import { EngineLoop } from "./engine/EngineLoop";
 import { AudioEngine } from "./audio/AudioEngine";
-import { LookingGlassChamber } from "./chambers/LookingGlassChamber";
+//import { LookingGlassChamber } from "./chambers/LookingGlassChamber";
 import { WitnessControls } from "./controls/WitnessControls";
 import { crossed } from "./utils/phaseUtils";
+import { buildChamber } from "./core/factory";
+import { lookingGlassDef } from "./chambers/defs/LookingGlass.def";
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
-const chamber = new LookingGlassChamber(canvas);
 const audio = new AudioEngine();
 
+const chamber = buildChamber(canvas, lookingGlassDef);
 const controls = new WitnessControls(
   canvas,
-  (dx,dy) => chamber.setWitnessFacing(dx, dy),
-  (amt)   => chamber.thrustWitness(amt),
-  () => chamber.getWitnessPos(), // <— new
+  (dx,dy)=> chamber.setWitnessFacing(dx,dy) as any,
+  (a)=> (chamber as any).thrustWitness?.(a),
+  () => (chamber as any).getWitnessPos?.()
 );
 
 // simple UI wires
