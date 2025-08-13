@@ -4,7 +4,11 @@ import { ChamberDefinition } from "./defs";
 import { WitnessNode } from "../../actors/WitnessNode";
 import { crossed } from "../../utils/phaseUtils";
 
-export function buildChamber(canvas: HTMLCanvasElement, def: ChamberDefinition): ChamberBase {
+export function buildChamber(
+  canvas: HTMLCanvasElement,
+  def: ChamberDefinition,
+  services?: any
+): ChamberBase {
   // Return a tiny subclass composed from the definition
   class GeneratedChamber extends ChamberBase {
     private witness = new WitnessNode(() => this.canvas.getBoundingClientRect());

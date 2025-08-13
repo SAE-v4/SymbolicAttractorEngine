@@ -60,6 +60,12 @@ console.log("Chamber size:", this.width, this.height);
   getWitnessPos() { return { x: this.witness.x, y: this.witness.y }; }
   setPhaseSpeed(_: number) { /* not used here; visual cycle comes from tempo if needed */ }
 
+  private visibleH(): number {
+  const ui = document.getElementById("ui");
+  const uiH = ui ? ui.getBoundingClientRect().height : 0;
+  return Math.max(0, this.vp.h - uiH);
+}
+
   // ---- Spawning / Collecting ----
   private spawnIf(kind: EntityKind, maxCount: number, ttl: number) {
     const live = this.entities.filter(e => e.kind === kind && e.flash <= 0);
@@ -68,15 +74,17 @@ console.log("Chamber size:", this.width, this.height);
   }
 
   private spawn(kind: EntityKind, ttl: number): Entity {
+const hVis = this.visibleH();
+const y = hVis + 20;
+const baseVy = -(30 + Math.random() * 25); // steady upward
+
     const { w, h } = this.vp;
     const now = this.t;
     const x = Math.random() * w;
-    // spawn just below view; drift upward (falling “hole” illusion)
-    const y = h + 20;
-    const vy = - (20 + Math.random() * 30);
+
     const vx = (Math.random() - 0.5) * 30;
     const rot = 0; const vr = (Math.random() - 0.5) * 1.5;
-    return { kind, x, y, vx, vy, rot, vr, born: now, ttl, flash: 0 };
+return { kind, x, y, vx, vy: baseVy, rot, vr, born: now, ttl, flash: 0 }
   }
 
   private tryCollect() {
@@ -102,28 +110,42 @@ console.log("Chamber size:", this.width, this.height);
   update(dt: number) {
     this.t += dt;
     // gravity + drag
-    for (const e of this.entities) {
-      e.vy += this.g * dt;
-      e.vx *= Math.pow(this.dragX, dt * 60);
-      e.vy *= Math.pow(this.dragY, dt * 60);
-      e.x += e.vx * dt; e.y += e.vy * dt;
-      e.rot += e.vr * dt;
-      // lifetime
-      if (this.t - e.born > e.ttl) e.flash = Math.max(e.flash, 0.001); // start fading if expired
-      if (e.flash > 0) e.flash = Math.max(0, e.flash - dt * 2.5);
-    }
+for (const e of this.entities) {
+  // horizontal sway only
+  e.vx *= Math.pow(this.dragX, dt * 60);
+  e.x += e.vx * dt;
+
+  // steady upward drift + tiny wobble
+  e.y += e.vy * dt;
+  e.y += Math.sin((this.t - e.born) * 2 + e.x * 0.02) * 2 * dt;
+
+  e.rot += e.vr * dt;
+
+  // lifetime/flash as before…
+}
     // cull offscreen & finished flashes
-    const { w, h } = this.vp;
-    this.entities = this.entities.filter(e => !(e.flash === 0 && (e.y < -40 || e.y > h + 80 || e.x < -80 || e.x > w + 80)) && e.flash > 0 || this.t - e.born <= e.ttl);
+const hVis = this.visibleH();
+this.entities = this.entities.filter(e =>
+  !(
+    e.flash === 0 &&
+    (e.y < -40 || e.y > hVis + 80 || e.x < -80 || e.x > this.vp.w + 80)
+  ) &&
+  (this.t - e.born <= e.ttl || e.flash > 0)
+);
     // witness & pulse
     this.witness.update(dt, this.vp);
+    this.witness.vy += 40 * dt; 
     if (this.sparkle > 0) this.sparkle = Math.max(0, this.sparkle - dt);
   }
-
+  
   render(alpha: number) {
     const { ctx } = this; const { w, h } = this.vp;
 
-
+const hVis = this.visibleH();
+ctx.save();
+ctx.strokeStyle = "rgba(0,200,255,0.4)";
+ctx.beginPath(); ctx.moveTo(0, hVis); ctx.lineTo(this.vp.w, hVis); ctx.stroke();
+ctx.restore();
     // background: falling dots for “hole” feel
     ctx.clearRect(0, 0, w, h);
     const g = ctx.createLinearGradient(0, 0, 0, h);
