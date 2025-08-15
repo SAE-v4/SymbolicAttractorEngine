@@ -2,7 +2,7 @@ import { EngineLoop } from "./engine/EngineLoop";
 import { AudioEngine } from "./audio/AudioEngine";
 //import { LookingGlassChamber } from "./chambers/LookingGlassChamber";
 //import { RabbitHoleChamber } from "./chambers/RabbitHoleChamber";
-import { FlowModeChamber } from "./chambers/flow/FlowModeChamber";
+import { SpiralGateChamber } from "./chambers/flow/SpiralGateChamber";
 import { WitnessControls } from "./controls/WitnessControls";
 import { crossed } from "./utils/phaseUtils";
 import { buildChamber } from "./chambers/core/factory";
@@ -28,7 +28,7 @@ const services: Services = {
 services.tempo?.onBeat("quarter", () => chamber.onBeat?.()); // visual pulse + collect
 services.tempo?.onBeat("downbeat", () => {/* audio cue later */});
 services.tempo?.onBeat("eighth",  () => {/* light tics later */});
-const chamber = new FlowModeChamber(canvas, services); // if your base takes services
+const chamber = new SpiralGateChamber(canvas, services); // if your base takes services
 // Controls
 console.log(chamber)
 const controls = new WitnessControls(
