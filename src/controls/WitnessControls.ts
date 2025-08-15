@@ -5,7 +5,7 @@ export class WitnessControls {
     private canvas: HTMLCanvasElement,
     private onFace: (dx: number, dy: number) => void,
     private onThrust: (amt: number) => void,
-    private getWitnessPos: () => { x: number; y: number }, // NEW
+    private getWitnessPos: () => { x: number; y: number } | undefined, // NEW
   ) {
     canvas.addEventListener("pointerdown", this.onDown, { passive: true });
     canvas.addEventListener("pointermove", this.onMove, { passive: true });

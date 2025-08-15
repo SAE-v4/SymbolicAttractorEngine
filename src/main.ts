@@ -39,60 +39,8 @@ const controls = new WitnessControls(
 );
 
 
-// simple UI wires
-const startBtn = document.getElementById("start-audio") as HTMLButtonElement;
-const pauseBtn = document.getElementById("pause") as HTMLButtonElement;
-const resumeBtn = document.getElementById("resume") as HTMLButtonElement;
-const bpmInput = document.getElementById("bpm") as HTMLInputElement;
-const bpmValue = document.getElementById("bpmValue") as HTMLSpanElement;
-
-// BPM mapping
-bpmInput.addEventListener("input", () => {
-  const v = parseInt(bpmInput.value, 10);
-  bpmValue.textContent = String(v);
-  audio.setBpm(v);
-  chamber.setPhaseSpeed?.(v / 240); // 1 bar per cycle @ 4/4
-});
-
-// Audio start / on-beat visual
-startBtn.addEventListener("click", async () => {
-  await audio.start();
-  audio.startScheduler(() => chamber.onBeat?.());
-});
-
-pauseBtn.addEventListener("click", () => audio.pause());
-resumeBtn.addEventListener("click", () => audio.resume());
-
-// on scheduler: add a visual beat ping
-startBtn.addEventListener("click", async () => {
-  await audio.start();
-  audio.startScheduler(() => chamber.onBeat());
-});
-
-// boot
-bpmInput.dispatchEvent(new Event("input"));
-
-let prevPhase = chamber.phase;
 const thresholds = [0, 0.25, 0.5, 0.75];
 
-// BPM UI: drive tempo; optionally link visuals to tempo
-
-let linkTempoToPhase = true;
-
-function syncBpmFromUI(){
-  const v = parseInt(bpmInput.value, 10);
-  bpmValue.textContent = String(v);
-  services.tempo?.setBpm(v);
-  if (linkTempoToPhase && chamber.setPhaseSpeed) {
-    // 1 bar per cycle when visuals are linked
-    chamber.setPhaseSpeed(v / 240); // BPM/240 -> cycles/sec
-  }
-}
-bpmInput.addEventListener("input", syncBpmFromUI);
-syncBpmFromUI();
-
-// Beat hooks: visual pulse and (optionally) audio click
-// TempoEngine beat hook (if you’re using it)
 services.tempo?.onBeat("quarter", () => {
   chamber.onBeat?.();
 });
