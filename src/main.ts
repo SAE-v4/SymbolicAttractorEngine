@@ -1,18 +1,16 @@
 import { EngineLoop } from "./engine/EngineLoop";
-import { AudioEngine } from "./audio/AudioEngine";
 //import { LookingGlassChamber } from "./chambers/LookingGlassChamber";
 //import { RabbitHoleChamber } from "./chambers/RabbitHoleChamber";
 import { SpiralGateChamber } from "./chambers/flow/SpiralGateChamber";
 import { WitnessControls } from "./controls/WitnessControls";
-import { crossed } from "./utils/phaseUtils";
-import { buildChamber } from "./chambers/core/factory";
-import { lookingGlassDef } from "./chambers/defs/LookingGlass.def";
+//import { crossed } from "./utils/phaseUtils";
+//import { buildChamber } from "./chambers/core/factory";
+//import { lookingGlassDef } from "./chambers/defs/LookingGlass.def";
 import { TempoEngine } from "./tempo/TempoEngine";
 import { Services } from "./chambers/core/Services";
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
 const tempo = new TempoEngine();
-const audio = new AudioEngine();
 
 // Services object to hand to chambers
 const services: Services = {
@@ -31,12 +29,14 @@ services.tempo?.onBeat("eighth",  () => {/* light tics later */});
 const chamber = new SpiralGateChamber(canvas, services); // if your base takes services
 // Controls
 console.log(chamber)
+// Controls
 const controls = new WitnessControls(
   canvas,
-  (dx,dy) => chamber.setWitnessFacing?.(dx,dy),
-  (amt)   => chamber.thrustWitness?.(amt),
-  ()      => chamber.getWitnessPos?.()
+  (dx, dy) => chamber.setWitnessFacing?.(dx, dy),
+  (amt)    => chamber.thrustWitness?.(amt),
+  ()       => chamber.getWitnessPos()        // <— no optional chaining here
 );
+
 
 
 const thresholds = [0, 0.25, 0.5, 0.75];
