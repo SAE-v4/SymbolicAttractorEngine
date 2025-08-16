@@ -2,6 +2,7 @@
 type GetPos = () => { x: number; y: number } | undefined;
 
 export class WitnessControls {
+
   private rect!: DOMRect;
   private dragging = false;
 
@@ -15,7 +16,8 @@ export class WitnessControls {
     private canvas: HTMLCanvasElement,
     private setFacing: (dx: number, dy: number) => void,
     private thrust: (amount01: number) => void,
-    private getWitnessPos: GetPos
+    private getWitnessPos: GetPos,
+    
   ) {
     this.rect = canvas.getBoundingClientRect();
 
@@ -30,6 +32,7 @@ export class WitnessControls {
     addEventListener("resize", () => {
       this.rect = this.canvas.getBoundingClientRect();
     });
+    
   }
 
   private onDown = (e: PointerEvent) => {
