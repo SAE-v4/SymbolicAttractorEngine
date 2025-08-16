@@ -1,4 +1,5 @@
 // src/chambers/ChamberBase.ts
+
 export interface ChamberServices {
   audio?: { onBeat?: (cb: (t:number)=>void) => void };
   time?: { getPhase: () => number; setPhaseSpeed: (v:number)=>void };
@@ -39,4 +40,9 @@ export abstract class ChamberBase {
   protected onResize() {}
   abstract update(dt: number): void;
   abstract render(dt: number): void;
+  setWitnessFacing?(dx:number, dy:number): void;
+thrustWitness?(amt:number): void;
+getWitnessPos?(): { x:number; y:number };
+onBeatQuarter?(): void;   // optional beat hooks
+onBeatDownbeat?(): void;
 }
