@@ -31,15 +31,18 @@ export class SpiralGateChamber {
   private readonly maxSpeed = 600; // px/s
   private readonly damping = 0.92; // velocity decay per second (applied frame-wise)
 
+  private baseScale = 1200; // reference viewport size
+  private scale = 1;
+
+  private assistLevel = 0.0; // 0..1 (0 = expert, 1 = very friendly)
+
   private beginnerPos: Vec2 = { x: 0, y: 0 };
   private beginnerVel: Vec2 = { x: 0, y: 0 };
   private beginnerFacing: Vec2 = { x: 1, y: 0 };
   private beginnerThrustAmt = 0;
 
   private gate!: FlowGate;
-private showDebug = false;
-
-  
+  private showDebug = false;
 
   constructor(private canvas: HTMLCanvasElement, services: Services) {
     const ctx = canvas.getContext("2d");
@@ -50,22 +53,37 @@ private showDebug = false;
     this.handleResize();
     addEventListener("resize", () => this.handleResize());
 
-this.gate = new FlowGate({ x: this.width*0.5, y: this.height*0.5 }, () => this.services.tempo.phase?.() ?? 0, 1);
-addEventListener("keydown", (e) => { if (e.key.toLowerCase() === "d") this.showDebug = !this.showDebug; });
+    const friendliness = 1 - 0.6 * this.assistLevel; // assist 0→friendly 1.0, assist 1→friendly 0.4
+    this.gate = new FlowGate(
+      { x: this.width * 0.5, y: this.height * 0.5 },
+      () => this.services.tempo.phase?.() ?? 0,
+      /* dir */ 1, // CCW or -1 for CW
+      friendliness
+    );
+    addEventListener("keydown", (e) => {
+      if (e.key.toLowerCase() === "d") this.showDebug = !this.showDebug;
+    });
+
+    const isSmall = Math.min(window.innerWidth, window.innerHeight) < 900;
+    this.assistLevel = isSmall ? 0.6 : 0.2;
 
     // Start witness in center
     this.witnessPos = { x: this.width * 0.5, y: this.height * 0.5 };
     this.beginnerPos = { x: this.width * 0.25, y: this.height * 0.5 };
   }
 
+  // Track steering intent for breath latch
+  private _steeringTimer = 0;
+
   // --- API expected by controls ---
   public getWitnessPos(): Vec2 {
     return this.witnessPos;
   }
+
   public setWitnessFacing(dx: number, dy: number) {
     const n = norm({ x: dx, y: dy });
     this.witnessFacing = n;
-    this.beginnerFacing = n;
+    this._steeringTimer = 0.2; // 200ms grace after any facing input
   }
   public thrustWitness(amount01: number) {
     // clamp to [0,1]
@@ -77,40 +95,92 @@ addEventListener("keydown", (e) => { if (e.key.toLowerCase() === "d") this.showD
   public onBeat?(): void;
 
   // --- Sim/update ---
-public update(dt: number) {
-  // existing witness physics
-  const ax = this.witnessFacing.x * this.accel * this.thrustAmt;
-  const ay = this.witnessFacing.y * this.accel * this.thrustAmt;
-  this.witnessVel.x += ax * dt;
-  this.witnessVel.y += ay * dt;
-  const dampingPerFrame = Math.pow(this.damping, dt);
-  this.witnessVel.x *= dampingPerFrame;
-  this.witnessVel.y *= dampingPerFrame;
-  const speed = Math.hypot(this.witnessVel.x, this.witnessVel.y);
-  if (speed > this.maxSpeed) {
-    const k = this.maxSpeed / speed;
-    this.witnessVel.x *= k; this.witnessVel.y *= k;
+  // --- update(dt): edge assist + breath latch + optional containment ---
+  public update(dt: number) {
+    // Base physics (same as you have)
+    const ax = this.witnessFacing.x * this.accel * this.thrustAmt;
+    const ay = this.witnessFacing.y * this.accel * this.thrustAmt;
+    this.witnessVel.x += ax * dt;
+    this.witnessVel.y += ay * dt;
+
+    // Global damping
+    const dampingPerFrame = Math.pow(this.damping, dt);
+    this.witnessVel.x *= dampingPerFrame;
+    this.witnessVel.y *= dampingPerFrame;
+
+    // --- Assist 1: soft edge bias & extra damping ---
+    if (this.assistLevel > 0) {
+      const edgeCushion =
+        Math.min(this.width, this.height) * (0.18 - 0.08 * this.assistLevel); // 18%→10%
+      const dl = this.witnessPos.x,
+        dr = this.width - this.witnessPos.x;
+      const dtp = this.witnessPos.y,
+        db = this.height - this.witnessPos.y;
+      const distToEdge = Math.min(dl, dr, dtp, db);
+      const edgeProx = Math.max(0, 1 - distToEdge / edgeCushion); // 0..1
+
+      if (edgeProx > 0) {
+        const toward = norm({
+          x: this.width * 0.5 - this.witnessPos.x,
+          y: this.height * 0.5 - this.witnessPos.y,
+        });
+        const pull = (120 + 240 * this.assistLevel) * edgeProx * this.scale;
+        this.witnessVel.x += toward.x * pull * dt;
+        this.witnessVel.y += toward.y * pull * dt;
+
+        // extra damping toward edge
+        const extra = 1 - (0.18 + 0.25 * this.assistLevel) * edgeProx * dt;
+        this.witnessVel.x *= extra;
+        this.witnessVel.y *= extra;
+      }
+    }
+
+    // Clamp speed
+    const speed = Math.hypot(this.witnessVel.x, this.witnessVel.y);
+    if (speed > this.maxSpeed) {
+      const k = this.maxSpeed / speed;
+      this.witnessVel.x *= k;
+      this.witnessVel.y *= k;
+    }
+
+    // Integrate position
+    this.witnessPos.x += this.witnessVel.x * dt;
+    this.witnessPos.y += this.witnessVel.y * dt;
+
+    // --- Assist 2: soft contain (reduce wrap confusion) ---
+    if (this.assistLevel >= 0.5) {
+      // contain to edges softly
+      this.witnessPos.x = Math.max(0, Math.min(this.width, this.witnessPos.x));
+      this.witnessPos.y = Math.max(0, Math.min(this.height, this.witnessPos.y));
+    } else {
+      // keep your torus wrap
+      this.wrap(this.witnessPos);
+    }
+
+    // --- Assist 3: breath latch when steering (ease thrust toward target) ---
+    this._steeringTimer = Math.max(0, this._steeringTimer - dt);
+    if (this.assistLevel > 0) {
+      const targetT = this.gate?.readout.targetThrust ?? 0.5;
+      const steering = this._steeringTimer > 0;
+      const easeRate = steering ? 1.2 + 2.0 * this.assistLevel : 0; // per-sec
+      if (easeRate > 0) {
+        const t = Math.exp(-easeRate * dt);
+        this.thrustAmt = this.thrustAmt * t + targetT * (1 - t);
+      }
+    }
+
+    // Beginner node update if you kept it
+    if (this.updateBeginner) this.updateBeginner(dt as any);
+
+    // Gate update (unchanged)
+    this.gate.update(
+      dt,
+      this.witnessPos,
+      { x: this.witnessVel.x, y: this.witnessVel.y },
+      { x: this.witnessFacing.x, y: this.witnessFacing.y },
+      this.thrustAmt
+    );
   }
-  this.witnessPos.x += this.witnessVel.x * dt;
-  this.witnessPos.y += this.witnessVel.y * dt;
-  this.wrap(this.witnessPos);
-
-  // beginner (if you kept it)
-  if (this.updateBeginner) this.updateBeginner(dt as any);
-
-  // --- FlowGate update ---
-  this.gate.update(
-    dt,
-    this.witnessPos,
-    { x: this.witnessVel.x, y: this.witnessVel.y },
-    { x: this.witnessFacing.x, y: this.witnessFacing.y },
-    this.thrustAmt
-  );
-
-  // optional: on open, you can trigger a one-shot (visual/audio) here
-  // if (this.gate.isOpen() && !this._didChime) { this._didChime = true; /* TODO: audio chime */ }
-}
-
 
   private updateWitness(dt: number) {
     // existing inertial witness physics
@@ -132,14 +202,14 @@ public update(dt: number) {
     this.wrap(this.witnessPos);
   }
 
-public render(_alpha: number) {
-  const phase = this.services.tempo.phase?.() ?? 0;
-  this.drawBreathingBackground(phase);
-  this.drawGateVisual();
-  if (this.drawBeginner) this.drawBeginner();
-  this.drawWitness();
-   this.drawDebug();
-}
+  public render(_alpha: number) {
+    const phase = this.services.tempo.phase?.() ?? 0;
+    this.drawBreathingBackground(phase);
+    this.drawGateVisual();
+    if (this.drawBeginner) this.drawBeginner();
+    this.drawWitness();
+    this.drawDebug();
+  }
 
   private updateBeginner(dt: number) {
     // beginner gets strong damping + mild spiral bias
@@ -247,6 +317,18 @@ public render(_alpha: number) {
     g.arc(0, 0, 8 + this.thrustAmt * 6, 0, Math.PI * 2);
     g.fillStyle = "rgba(20,40,120,0.9)";
     g.fill();
+    // in drawWitness()
+g.shadowColor = "rgba(20,40,120,0.35)";
+g.shadowBlur = 16;
+g.beginPath(); g.arc(0, 0, 8 + this.thrustAmt * 6, 0, Math.PI*2); g.fill();
+
+g.beginPath();
+g.moveTo(0, 0);
+g.lineTo(-this.witnessVel.x * 0.06, -this.witnessVel.y * 0.06);
+g.lineWidth = 2;
+g.strokeStyle = "rgba(20,40,120,0.35)";
+g.stroke();
+g.shadowBlur = 0;
     g.restore();
   }
 
@@ -275,85 +357,96 @@ public render(_alpha: number) {
     this.height = Math.max(1, Math.floor(rect.height * dpr));
     this.canvas.width = this.width;
     this.canvas.height = this.height;
-    // If you also need CSS size, ensure the canvas is styled via CSS to fill.
+
+    // Viewport scale (clamped for sanity)
+    this.scale = Math.max(
+      0.6,
+      Math.min(1.6, Math.min(this.width, this.height) / this.baseScale)
+    );
+
+    // Retune physics by scale
+    this.accel = 900 * this.scale;
+    this.maxSpeed = 600 * this.scale;
   }
 
   private drawGateVisual() {
-  const g = this.ctx;
-  const { progress } = this.gate.readout;
-  const cx = this.width * 0.5, cy = this.height * 0.5;
+    const g = this.ctx;
+    const { progress } = this.gate.readout;
+    const cx = this.width * 0.5,
+      cy = this.height * 0.5;
 
-  // expanding ring + glow
-  const baseR = Math.min(this.width, this.height) * 0.18;
-  const r = baseR + progress * baseR * 0.9;
+    // expanding ring + glow
+    const baseR = Math.min(this.width, this.height) * 0.18;
+    const r = baseR + progress * baseR * 0.9;
 
-  // ring
-  g.save();
-  g.beginPath();
-  g.arc(cx, cy, r, 0, Math.PI * 2);
-  g.lineWidth = 6 + 12 * progress;
-  g.strokeStyle = `rgba(40,80,200, ${0.35 + 0.4 * progress})`;
-  g.stroke();
+    // ring
+    g.save();
+    g.beginPath();
+    g.arc(cx, cy, r, 0, Math.PI * 2);
+    g.lineWidth = 6 + 12 * progress;
+    g.strokeStyle = `rgba(40,80,200, ${0.35 + 0.4 * progress})`;
+    g.stroke();
 
-  // inner glow
-  const rg = g.createRadialGradient(cx, cy, r * 0.7, cx, cy, r * 1.4);
-  rg.addColorStop(0, `rgba(120,160,255, ${0.22 + 0.25 * progress})`);
-  rg.addColorStop(1, `rgba(120,160,255, 0)`);
-  g.globalCompositeOperation = "lighter";
-  g.fillStyle = rg;
-  g.beginPath();
-  g.arc(cx, cy, r * 1.4, 0, Math.PI * 2);
-  g.fill();
-  g.restore();
-}
+    // inner glow
+    const rg = g.createRadialGradient(cx, cy, r * 0.7, cx, cy, r * 1.4);
+    rg.addColorStop(0, `rgba(120,160,255, ${0.22 + 0.25 * progress})`);
+    rg.addColorStop(1, `rgba(120,160,255, 0)`);
+    g.globalCompositeOperation = "lighter";
+    g.fillStyle = rg;
+    g.beginPath();
+    g.arc(cx, cy, r * 1.4, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  }
 
-private drawDebug() {
-  const g = this.ctx;
-  const dpr = devicePixelRatio || 1;
-  const { sAlign, sCoherent, sBreath, targetThrust, tangent, progress } = this.gate.readout;
+  private drawDebug() {
+    const g = this.ctx;
+    const dpr = devicePixelRatio || 1;
+    const { sAlign, sCoherent, sBreath, targetThrust, tangent, progress } =
+      this.gate.readout;
 
-  // vectors at witness
-  g.save();
-  g.translate(this.witnessPos.x, this.witnessPos.y);
+    // vectors at witness
+    g.save();
+    g.translate(this.witnessPos.x, this.witnessPos.y);
 
-  // velocity
-  g.beginPath();
-  g.moveTo(0, 0);
-  g.lineTo(this.witnessVel.x * 0.15, this.witnessVel.y * 0.15);
-  g.lineWidth = 3;
-  g.strokeStyle = "rgba(30,150,80,0.9)";
-  g.stroke();
+    // velocity
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(this.witnessVel.x * 0.15, this.witnessVel.y * 0.15);
+    g.lineWidth = 3;
+    g.strokeStyle = "rgba(30,150,80,0.9)";
+    g.stroke();
 
-  // accelDir (facing)
-  g.beginPath();
-  g.moveTo(0, 0);
-  g.lineTo(this.witnessFacing.x * 40, this.witnessFacing.y * 40);
-  g.lineWidth = 2;
-  g.strokeStyle = "rgba(200,120,30,0.9)";
-  g.stroke();
+    // accelDir (facing)
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(this.witnessFacing.x * 40, this.witnessFacing.y * 40);
+    g.lineWidth = 2;
+    g.strokeStyle = "rgba(200,120,30,0.9)";
+    g.stroke();
 
-  // spiral tangent
-  g.beginPath();
-  g.moveTo(0, 0);
-  g.lineTo(tangent.x * 48, tangent.y * 48);
-  g.lineWidth = 2;
-  g.setLineDash([6, 4]);
-  g.strokeStyle = "rgba(40,80,200,0.9)";
-  g.stroke();
+    // spiral tangent
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(tangent.x * 48, tangent.y * 48);
+    g.lineWidth = 2;
+    g.setLineDash([6, 4]);
+    g.strokeStyle = "rgba(40,80,200,0.9)";
+    g.stroke();
 
-  g.restore();
+    g.restore();
 
-  // text HUD (top-left)
-  g.save();
-  g.font = `${12 * dpr}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-  g.fillStyle = "rgba(0,0,0,0.45)";
-  g.fillRect(10 * dpr, 10 * dpr, 210 * dpr, 84 * dpr);
-  g.fillStyle = "white";
-  g.fillText(`Align:   ${sAlign.toFixed(2)}`, 18 * dpr, 28 * dpr);
-  g.fillText(`Coher.:  ${sCoherent.toFixed(2)}`, 18 * dpr, 44 * dpr);
-  g.fillText(`Breath:  ${sBreath.toFixed(2)}`, 18 * dpr, 60 * dpr);
-  g.fillText(`TargetT: ${targetThrust.toFixed(2)}`, 18 * dpr, 76 * dpr);
-  g.fillText(`Gate ▣ ${Math.round(progress * 100)}%`, 18 * dpr, 92 * dpr);
-  g.restore();
-}
+    // text HUD (top-left)
+    g.save();
+    g.font = `${12 * dpr}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    g.fillStyle = "rgba(0,0,0,0.45)";
+    g.fillRect(10 * dpr, 10 * dpr, 210 * dpr, 84 * dpr);
+    g.fillStyle = "white";
+    g.fillText(`Align:   ${sAlign.toFixed(2)}`, 18 * dpr, 28 * dpr);
+    g.fillText(`Coher.:  ${sCoherent.toFixed(2)}`, 18 * dpr, 44 * dpr);
+    g.fillText(`Breath:  ${sBreath.toFixed(2)}`, 18 * dpr, 60 * dpr);
+    g.fillText(`TargetT: ${targetThrust.toFixed(2)}`, 18 * dpr, 76 * dpr);
+    g.fillText(`Gate ▣ ${Math.round(progress * 100)}%`, 18 * dpr, 92 * dpr);
+    g.restore();
+  }
 }

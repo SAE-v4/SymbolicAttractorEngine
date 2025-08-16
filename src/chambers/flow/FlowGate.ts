@@ -43,10 +43,18 @@ export class FlowGate {
     tangent: { x: 1, y: 0 },
   };
 
-  constructor(center: Vec2, phaseFn: () => number, dir: 1 | -1 = 1) {
-    this.center = center;
-    this.phaseFn = phaseFn;
-    this.dir = dir; // 1 = CCW (default), -1 = CW
+constructor(center: Vec2, phaseFn: () => number, dir: 1 | -1 = 1, friendliness = 1) {
+  this.center = center;
+  this.phaseFn = phaseFn;
+  this.dir = dir;
+
+  // ease tuning with friendliness (<1 = easier)
+  this.openThreshold   = 0.75 * friendliness + 0.62 * (1 - friendliness);
+  this.openSeconds     = 2.5  * friendliness + 1.5  * (1 - friendliness);
+  this.decayPerSec     = 0.25 * friendliness + 0.12 * (1 - friendliness);
+  this.breathTolerance = 0.15 * friendliness + 0.24 * (1 - friendliness);
+
+  this.inwardBias      = 0.20 * friendliness + 0.28 * (1 - friendliness)
   }
 
   // Simple spiral field: tangent = rot90(radial-to-center), with slight inward bias
