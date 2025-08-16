@@ -1,37 +1,29 @@
-// src/vis/phaseFX.ts
-export type PhaseFXOpts = {
-  baseA?: number;        // base alpha for overlays
-  breathDepth?: number;  // 0..1 how much the phase modulates
-  rippleDecay?: number;  // seconds for beat ripples to fade
-};
+export function drawPhaseFX(
+  g: CanvasRenderingContext2D,
+  phase: number,
+  w: number,
+  h: number
+) {
+  g.save();
+  g.clearRect(0, 0, w, h);
 
-export class PhaseFX {
-  private t = 0;
-  private ripple = 0; // decays after onBeat()
+  const i = 0.5 + 0.35 * Math.sin(phase * Math.PI * 2);
+  const grad = g.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, `rgba(200,210,255, ${0.45 + 0.25 * i})`);
+  grad.addColorStop(1, `rgba(235,242,255, 0.75)`);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
 
-  constructor(private getPhase: () => number, private opts: PhaseFXOpts = {}) {}
-
-  update(dt: number) {
-    this.t += dt;
-    if (this.ripple > 0) this.ripple = Math.max(0, this.ripple - dt / (this.opts.rippleDecay ?? 0.6));
+  // soft horizontal bands
+  g.globalCompositeOperation = "overlay";
+  const rows = 9;
+  for (let y = 0; y < rows; y++) {
+    const t = y / (rows - 1);
+    const s = Math.sin(phase * Math.PI * 2 + t * Math.PI * 2);
+    const alpha = 0.06 + 0.10 * Math.max(0, s);
+    g.fillStyle = `rgba(200,210,255, ${alpha})`;
+    const y0 = t * h;
+    g.fillRect(0, y0 - 8, w, 16);
   }
-
-  onBeat() {
-    this.ripple = 1; // trigger a brief flash/ripple
-  }
-
-  // 0..1 breathing value from musical phase (smooth)
-  breath(): number {
-    const p = this.getPhase();              // 0..1
-    const s = Math.sin(p * Math.PI * 2);    // -1..1
-    return 0.5 + 0.5 * s;                   // 0..1
-  }
-
-  // global overlay alpha combining base + breath + ripple
-  overlayAlpha(mult = 1): number {
-    const base = this.opts.baseA ?? 0.06;
-    const depth = this.opts.breathDepth ?? 0.5;         // how much breath affects alpha
-    const a = base + depth * this.breath() + 0.35 * this.ripple;
-    return Math.min(1, a * mult);
-  }
+  g.restore();
 }
