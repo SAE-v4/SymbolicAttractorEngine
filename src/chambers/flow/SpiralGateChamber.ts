@@ -44,6 +44,10 @@ export class SpiralGateChamber {
   private gate!: FlowGate;
   private showDebug = false;
 
+  // SpiralGateChamber.ts (add fields)
+private openBloom = 0; // 0..1, visual celebration
+private chimePlayedAt = -1;
+
   constructor(private canvas: HTMLCanvasElement, services: Services) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("2D context not available");
@@ -180,6 +184,19 @@ export class SpiralGateChamber {
       { x: this.witnessFacing.x, y: this.witnessFacing.y },
       this.thrustAmt
     );
+    if (this.gate.consumeJustOpened()) {
+  // 2.2s grace where the ring won’t immediately collapse
+  this.gate.setLatch(2.2);
+  this.openBloom = 1;
+
+  // (optional) play a chime once
+ // this.playGateChime?.();
+ // decay bloom
+if (this.openBloom > 0) {
+  const k = Math.exp(-2.4 * dt);
+  this.openBloom *= k;
+}
+}
   }
 
   private updateWitness(dt: number) {
@@ -210,6 +227,35 @@ export class SpiralGateChamber {
     this.drawWitness();
     this.drawDebug();
   }
+
+
+  // SpiralGateChamber.ts
+private audio?: AudioContext;
+
+private ensureAudio() {
+  if (!this.audio) this.audio = new (window.AudioContext || (window as any).webkitAudioContext)();
+}
+
+private playGateChime() {
+  this.ensureAudio(); if (!this.audio) return;
+  const ctx = this.audio;
+
+  const now = ctx.currentTime;
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc1.type = "sine";     osc1.frequency.setValueAtTime(740, now);  // F#5
+  osc2.type = "sine";     osc2.frequency.setValueAtTime(880, now);  // A5
+  gain.gain.setValueAtTime(0.0, now);
+  gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.6);
+
+  osc1.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
+  osc1.start(now); osc2.start(now);
+  osc1.stop(now + 0.65); osc2.stop(now + 0.65);
+}
+
 
   private updateBeginner(dt: number) {
     // beginner gets strong damping + mild spiral bias
@@ -369,35 +415,34 @@ g.shadowBlur = 0;
     this.maxSpeed = 600 * this.scale;
   }
 
-  private drawGateVisual() {
-    const g = this.ctx;
-    const { progress } = this.gate.readout;
-    const cx = this.width * 0.5,
-      cy = this.height * 0.5;
+private drawGateVisual() {
+  const g = this.ctx;
+  const { progress } = this.gate.readout;
+  const cx = this.width*0.5, cy = this.height*0.5;
 
-    // expanding ring + glow
-    const baseR = Math.min(this.width, this.height) * 0.18;
-    const r = baseR + progress * baseR * 0.9;
+  const baseR = Math.min(this.width, this.height) * 0.18;
+  const r = baseR + progress * baseR * 0.9;
 
-    // ring
-    g.save();
-    g.beginPath();
-    g.arc(cx, cy, r, 0, Math.PI * 2);
-    g.lineWidth = 6 + 12 * progress;
-    g.strokeStyle = `rgba(40,80,200, ${0.35 + 0.4 * progress})`;
-    g.stroke();
+  // ring
+  g.save();
+  g.beginPath();
+  g.arc(cx, cy, r, 0, Math.PI*2);
+  g.lineWidth = 6 + 12 * progress + 10 * this.openBloom;
+  g.strokeStyle = `rgba(40,80,200, ${0.35 + 0.4*progress + 0.25*this.openBloom})`;
+  g.stroke();
 
-    // inner glow
-    const rg = g.createRadialGradient(cx, cy, r * 0.7, cx, cy, r * 1.4);
-    rg.addColorStop(0, `rgba(120,160,255, ${0.22 + 0.25 * progress})`);
-    rg.addColorStop(1, `rgba(120,160,255, 0)`);
-    g.globalCompositeOperation = "lighter";
-    g.fillStyle = rg;
-    g.beginPath();
-    g.arc(cx, cy, r * 1.4, 0, Math.PI * 2);
-    g.fill();
-    g.restore();
-  }
+  // glow (beefed up by bloom)
+  const rg = g.createRadialGradient(cx, cy, r*0.6, cx, cy, r*1.6 + 40*this.openBloom);
+  rg.addColorStop(0, `rgba(150,180,255, ${0.18 + 0.34*progress + 0.25*this.openBloom})`);
+  rg.addColorStop(1, `rgba(150,180,255, 0)`);
+  g.globalCompositeOperation = "lighter";
+  g.fillStyle = rg;
+  g.beginPath(); g.arc(cx, cy, r*1.6 + 40*this.openBloom, 0, Math.PI*2); g.fill();
+  g.restore();
+
+  g.globalCompositeOperation = "source-over";
+}
+
 
   private drawDebug() {
     const g = this.ctx;
@@ -434,6 +479,7 @@ g.shadowBlur = 0;
     g.strokeStyle = "rgba(40,80,200,0.9)";
     g.stroke();
 
+    
     g.restore();
 
     // text HUD (top-left)

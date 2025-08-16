@@ -33,6 +33,13 @@ export class FlowGate {
   private breathDepth = 0.4; // target thrust swing
   private breathMid = 0.5; // target thrust midpoint
   private breathTolerance = 0.22; // ± tolerance for sBreath=1
+  private wasOpen = false;
+private latchTimer = 0;      // seconds remaining at hard-open
+private openedPulse = false; // one-frame pulse
+
+public consumeJustOpened(): boolean { const v = this.openedPulse; this.openedPulse = false; return v; }
+public setLatch(seconds: number) { this.latchTimer = Math.max(this.latchTimer, seconds); }
+
 
   public readout: FlowGateReadout = {
     progress: 0,
@@ -96,6 +103,27 @@ constructor(center: Vec2, phaseFn: () => number, dir: 1 | -1 = 1, friendliness =
       this.progress -= this.decayPerSec * dt;
     }
     this.progress = clamp01(this.progress);
+
+    if (combined >= this.openThreshold) {
+  this.progress += dt / this.openSeconds;
+} else {
+  // slower decay if you’re close; faster if you drop far
+  const near = Math.max(0, combined - (this.openThreshold - 0.15)) / 0.15; // 0..1
+  const decay = this.decayPerSec * (0.35 + 0.65 * (1 - near));
+  this.progress -= decay * dt;
+}
+this.progress = clamp01(this.progress);
+
+// latch keeps gate open briefly
+if (this.latchTimer > 0) {
+  this.progress = 1;
+  this.latchTimer -= dt;
+}
+
+// open-edge detector
+const isOpenNow = this.progress >= 1;
+this.openedPulse = !this.wasOpen && isOpenNow;
+this.wasOpen = isOpenNow;
 
     this.readout = {
       progress: this.progress,
