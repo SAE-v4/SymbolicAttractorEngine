@@ -26,13 +26,13 @@ export class FlowGate {
   private dir: 1 | -1;
 
   // tuning
-  private openThreshold = 0.65; // combined score threshold
-  private openSeconds = 1.8; // sustain time to open
+  private openThreshold = 0.62; // combined score threshold
+  private openSeconds = 1.6; // sustain time to open
   private decayPerSec = 0.15; // progress loss when below threshold
   private inwardBias = 0.2; // blend inward to keep spiral “tight”
   private breathDepth = 0.4; // target thrust swing
   private breathMid = 0.5; // target thrust midpoint
-  private breathTolerance = 0.22; // ± tolerance for sBreath=1
+  private breathTolerance = 0.20; // ± tolerance for sBreath=1
   private wasOpen = false;
 private latchTimer = 0;      // seconds remaining at hard-open
 private openedPulse = false; // one-frame pulse
@@ -50,18 +50,13 @@ public setLatch(seconds: number) { this.latchTimer = Math.max(this.latchTimer, s
     tangent: { x: 1, y: 0 },
   };
 
-constructor(center: Vec2, phaseFn: () => number, dir: 1 | -1 = 1, friendliness = 1) {
-  this.center = center;
-  this.phaseFn = phaseFn;
-  this.dir = dir;
-
-  // ease tuning with friendliness (<1 = easier)
-  this.openThreshold   = 0.75 * friendliness + 0.62 * (1 - friendliness);
-  this.openSeconds     = 2.5  * friendliness + 1.5  * (1 - friendliness);
-  this.decayPerSec     = 0.25 * friendliness + 0.12 * (1 - friendliness);
-  this.breathTolerance = 0.15 * friendliness + 0.24 * (1 - friendliness);
-
-  this.inwardBias      = 0.20 * friendliness + 0.28 * (1 - friendliness)
+constructor(center: Vec2, phaseFn: () => number, dir: 1 | -1 = 1, friendliness = 1, flags?: { all: any }) {
+  this.center = center; this.phaseFn = phaseFn; this.dir = dir;
+  const F = flags?.all;
+  this.openThreshold   = F?.openThreshold   ?? (0.75 * friendliness + 0.62 * (1 - friendliness));
+  this.openSeconds     = F?.openSeconds     ?? (2.5  * friendliness + 1.5  * (1 - friendliness));
+  this.decayPerSec     = F?.decayPerSec     ?? (0.25 * friendliness + 0.12 * (1 - friendliness));
+  this.breathTolerance = F?.breathTolerance ?? (0.15 * friendliness + 0.24 * (1 - friendliness));
   }
 
   // Simple spiral field: tangent = rot90(radial-to-center), with slight inward bias

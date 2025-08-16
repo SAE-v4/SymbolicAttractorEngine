@@ -8,6 +8,8 @@ import { WitnessControls } from "./controls/WitnessControls";
 //import { lookingGlassDef } from "./chambers/defs/LookingGlass.def";
 import { TempoEngine } from "./tempo/TempoEngine";
 import { Services } from "./chambers/core/Services";
+import { Flags } from "./utils/Flags";
+const flags = new Flags();
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
 const tempo = new TempoEngine();
@@ -26,7 +28,7 @@ const services: Services = {
 services.tempo?.onBeat("quarter", () => chamber.onBeat?.()); // visual pulse + collect
 services.tempo?.onBeat("downbeat", () => {/* audio cue later */});
 services.tempo?.onBeat("eighth",  () => {/* light tics later */});
-const chamber = new SpiralGateChamber(canvas, services); // if your base takes services
+const chamber = new SpiralGateChamber(canvas, services, flags); // if your base takes services
 // Controls
 console.log(chamber)
 // Controls

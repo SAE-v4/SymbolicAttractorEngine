@@ -1,6 +1,7 @@
 // chambers/flow/SpiralGateChamber.ts
 import { Services } from "../core/Services";
 import { FlowGate } from "./FlowGate"; // adjust relative path if needed
+import { Flags } from "../../utils/Flags";
 
 type Vec2 = { x: number; y: number };
 function clamp(n: number, min: number, max: number) {
@@ -27,9 +28,9 @@ export class SpiralGateChamber {
   private thrustAmt = 0;
 
   // tuning
-  private readonly accel = 900; // px/s^2 at thrust=1
-  private readonly maxSpeed = 600; // px/s
-  private readonly damping = 0.92; // velocity decay per second (applied frame-wise)
+  private  accel = 900; // px/s^2 at thrust=1
+  private maxSpeed = 600; // px/s
+  private damping = 0.92; // velocity decay per second (applied frame-wise)
 
   private baseScale = 1200; // reference viewport size
   private scale = 1;
@@ -45,10 +46,10 @@ export class SpiralGateChamber {
   private showDebug = false;
 
   // SpiralGateChamber.ts (add fields)
-private openBloom = 0; // 0..1, visual celebration
-private chimePlayedAt = -1;
+  private openBloom = 0; // 0..1, visual celebration
+  private chimePlayedAt = -1;
 
-  constructor(private canvas: HTMLCanvasElement, services: Services) {
+  constructor(private canvas: HTMLCanvasElement, services: Services, private flags: Flags) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("2D context not available");
     this.ctx = ctx;
@@ -87,7 +88,7 @@ private chimePlayedAt = -1;
   public setWitnessFacing(dx: number, dy: number) {
     const n = norm({ x: dx, y: dy });
     this.witnessFacing = n;
-    this._steeringTimer = 0.2; // 200ms grace after any facing input
+    this._steeringTimer = 0.22; // 200ms grace after any facing input
   }
   public thrustWitness(amount01: number) {
     // clamp to [0,1]
@@ -128,15 +129,21 @@ private chimePlayedAt = -1;
           x: this.width * 0.5 - this.witnessPos.x,
           y: this.height * 0.5 - this.witnessPos.y,
         });
-        const pull = (120 + 240 * this.assistLevel) * edgeProx * this.scale;
+       const pull = (90 + 160 * this.assistLevel) * edgeProx * this.scale;  // was 120+240
+
         this.witnessVel.x += toward.x * pull * dt;
         this.witnessVel.y += toward.y * pull * dt;
 
         // extra damping toward edge
-        const extra = 1 - (0.18 + 0.25 * this.assistLevel) * edgeProx * dt;
+      const extra = 1 - ((0.12 + 0.18 * this.assistLevel) * edgeProx * dt); // was 0.18+0.25
         this.witnessVel.x *= extra;
         this.witnessVel.y *= extra;
       }
+      // edge assist using flags
+const pullBase = this.flags.all.edgePull;
+const dampBase = this.flags.all.edgeDamp;
+const pull = (pullBase * (0.6 + 0.8 * this.assistLevel)) * edgeProx * this.scale;
+const extra = 1 - (dampBase * edgeProx * dt);
     }
 
     // Clamp speed
@@ -172,6 +179,33 @@ private chimePlayedAt = -1;
         this.thrustAmt = this.thrustAmt * t + targetT * (1 - t);
       }
     }
+    // in update(dt), after base damping:
+const steering = this._steeringTimer > 0;
+this._steeringTimer = Math.max(0, this._steeringTimer - dt);
+
+
+// update: use flags
+const noInputDamp = this.flags.all.noInputDamp;
+if (!steering) {
+  const extra = Math.exp(-(noInputDamp) * dt);
+  this.witnessVel.x *= extra; this.witnessVel.y *= extra;
+}
+
+
+
+// contain vs wrap
+if (this.flags.all.softWall) { /* contain block */ } else { this.wrap(this.witnessPos); }
+
+// gate creation
+const fr = 1 - 0.6 * this.assistLevel;
+this.gate = new FlowGate(
+  { x: this.width*0.5, y: this.height*0.5 },
+  () => this.services.tempo.phase?.() ?? 0,
+  this.flags.all.gateDir,
+  fr,
+  this.flags // pass for tuning overrides
+);
+
 
     // Beginner node update if you kept it
     if (this.updateBeginner) this.updateBeginner(dt as any);
@@ -185,18 +219,18 @@ private chimePlayedAt = -1;
       this.thrustAmt
     );
     if (this.gate.consumeJustOpened()) {
-  // 2.2s grace where the ring won’t immediately collapse
-  this.gate.setLatch(2.2);
-  this.openBloom = 1;
+      // 2.2s grace where the ring won’t immediately collapse
+      this.gate.setLatch(2.2);
+      this.openBloom = 1;
 
-  // (optional) play a chime once
- // this.playGateChime?.();
- // decay bloom
-if (this.openBloom > 0) {
-  const k = Math.exp(-2.4 * dt);
-  this.openBloom *= k;
-}
-}
+      // (optional) play a chime once
+      // this.playGateChime?.();
+      // decay bloom
+      if (this.openBloom > 0) {
+        const k = Math.exp(-2.4 * dt);
+        this.openBloom *= k;
+      }
+    }
   }
 
   private updateWitness(dt: number) {
@@ -219,6 +253,25 @@ if (this.openBloom > 0) {
     this.wrap(this.witnessPos);
   }
 
+  private drawFlagsHUD() {
+  const g = this.ctx, dpr = devicePixelRatio || 1;
+  const f = this.flags.all;
+  const lines = [
+    `assist=${f.assistLevel.toFixed(2)} softWall=${f.softWall}`,
+    `accel=${f.accel} max=${f.maxSpeed} noInputDamp=${f.noInputDamp}`,
+    `edgePull=${f.edgePull} edgeDamp=${f.edgeDamp}`,
+    `gateDir=${f.gateDir} thr=${f.openThreshold} sec=${f.openSeconds}`,
+    `decay=${f.decayPerSec} tol=${f.breathTolerance}`,
+  ];
+  g.save();
+  g.font = `${12 * dpr}px ui-monospace, Menlo, monospace`;
+  g.fillStyle = "rgba(0,0,0,0.45)";
+  g.fillRect(12*dpr, 140*dpr, 440*dpr, (lines.length*18+16)*dpr);
+  g.fillStyle = "white";
+  lines.forEach((t, i) => g.fillText(t, 20*dpr, (160 + i*18)*dpr));
+  g.restore();
+}
+
   public render(_alpha: number) {
     const phase = this.services.tempo.phase?.() ?? 0;
     this.drawBreathingBackground(phase);
@@ -226,36 +279,94 @@ if (this.openBloom > 0) {
     if (this.drawBeginner) this.drawBeginner();
     this.drawWitness();
     this.drawDebug();
+    this.drawThrustMeter();
+
+    const r = this.gate.readout;
+    const good =
+      0.6 * r.sAlign + 0.25 * r.sBreath + 0.15 * r.sCoherent >=
+      (this.gate as any).openThreshold - 0.05;
+    if (good) {
+      const g = this.ctx;
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.fillStyle = "rgba(120,200,255,0.06)";
+      g.fillRect(0, 0, this.width, this.height);
+      g.restore();
+    }
+     this.drawFlagsHUD()
   }
 
+  // SpiralGateChamber.ts
+  private audio?: AudioContext;
+
+  private ensureAudio() {
+    if (!this.audio)
+      this.audio = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
+  }
+
+  private playGateChime() {
+    this.ensureAudio();
+    if (!this.audio) return;
+    const ctx = this.audio;
+
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(740, now); // F#5
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(880, now); // A5
+    gain.gain.setValueAtTime(0.0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.6);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.65);
+    osc2.stop(now + 0.65);
+  }
 
   // SpiralGateChamber.ts
-private audio?: AudioContext;
+  private drawThrustMeter() {
+    const g = this.ctx;
+    const dpr = devicePixelRatio || 1;
+    const x = 18 * dpr,
+      y = 18 * dpr,
+      w = 10 * dpr,
+      h = 120 * dpr;
 
-private ensureAudio() {
-  if (!this.audio) this.audio = new (window.AudioContext || (window as any).webkitAudioContext)();
-}
+    const actual = this.thrustAmt; // 0..1
+    const target = this.gate.readout.targetThrust; // 0..1
+    const tol = 0.18; // visual tolerance band
 
-private playGateChime() {
-  this.ensureAudio(); if (!this.audio) return;
-  const ctx = this.audio;
+    // frame
+    g.save();
+    g.fillStyle = "rgba(0,0,0,0.35)";
+    g.fillRect(x - 4, y - 4, w + 8, h + 8);
 
-  const now = ctx.currentTime;
-  const osc1 = ctx.createOscillator();
-  const osc2 = ctx.createOscillator();
-  const gain = ctx.createGain();
+    // background
+    g.fillStyle = "rgba(255,255,255,0.08)";
+    g.fillRect(x, y, w, h);
 
-  osc1.type = "sine";     osc1.frequency.setValueAtTime(740, now);  // F#5
-  osc2.type = "sine";     osc2.frequency.setValueAtTime(880, now);  // A5
-  gain.gain.setValueAtTime(0.0, now);
-  gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.6);
+    // target band
+    const ty = y + (1 - target) * h;
+    const th = tol * h;
+    g.fillStyle = "rgba(120,160,255,0.35)";
+    g.fillRect(x - 1, ty - th / 2, w + 2, th);
 
-  osc1.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
-  osc1.start(now); osc2.start(now);
-  osc1.stop(now + 0.65); osc2.stop(now + 0.65);
-}
+    // actual level
+    const ay = y + (1 - actual) * h;
+    g.fillStyle = "rgba(230,160,40,0.9)";
+    g.fillRect(x + 1, ay - 3, w - 2, 6);
 
+    g.restore();
+  }
 
   private updateBeginner(dt: number) {
     // beginner gets strong damping + mild spiral bias
@@ -364,17 +475,19 @@ private playGateChime() {
     g.fillStyle = "rgba(20,40,120,0.9)";
     g.fill();
     // in drawWitness()
-g.shadowColor = "rgba(20,40,120,0.35)";
-g.shadowBlur = 16;
-g.beginPath(); g.arc(0, 0, 8 + this.thrustAmt * 6, 0, Math.PI*2); g.fill();
+    g.shadowColor = "rgba(20,40,120,0.35)";
+    g.shadowBlur = 16;
+    g.beginPath();
+    g.arc(0, 0, 8 + this.thrustAmt * 6, 0, Math.PI * 2);
+    g.fill();
 
-g.beginPath();
-g.moveTo(0, 0);
-g.lineTo(-this.witnessVel.x * 0.06, -this.witnessVel.y * 0.06);
-g.lineWidth = 2;
-g.strokeStyle = "rgba(20,40,120,0.35)";
-g.stroke();
-g.shadowBlur = 0;
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.lineTo(-this.witnessVel.x * 0.06, -this.witnessVel.y * 0.06);
+    g.lineWidth = 2;
+    g.strokeStyle = "rgba(20,40,120,0.35)";
+    g.stroke();
+    g.shadowBlur = 0;
     g.restore();
   }
 
@@ -411,38 +524,52 @@ g.shadowBlur = 0;
     );
 
     // Retune physics by scale
-    this.accel = 900 * this.scale;
-    this.maxSpeed = 600 * this.scale;
+this.accel    = this.flags.all.accel    * this.scale;
+this.maxSpeed = this.flags.all.maxSpeed * this.scale;
   }
 
-private drawGateVisual() {
-  const g = this.ctx;
-  const { progress } = this.gate.readout;
-  const cx = this.width*0.5, cy = this.height*0.5;
+  private drawGateVisual() {
+    const g = this.ctx;
+    const { progress } = this.gate.readout;
+    const cx = this.width * 0.5,
+      cy = this.height * 0.5;
 
-  const baseR = Math.min(this.width, this.height) * 0.18;
-  const r = baseR + progress * baseR * 0.9;
+    const baseR = Math.min(this.width, this.height) * 0.18;
+    const r = baseR + progress * baseR * 0.9;
 
-  // ring
-  g.save();
-  g.beginPath();
-  g.arc(cx, cy, r, 0, Math.PI*2);
-  g.lineWidth = 6 + 12 * progress + 10 * this.openBloom;
-  g.strokeStyle = `rgba(40,80,200, ${0.35 + 0.4*progress + 0.25*this.openBloom})`;
-  g.stroke();
+    // ring
+    g.save();
+    g.beginPath();
+    g.arc(cx, cy, r, 0, Math.PI * 2);
+    g.lineWidth = 6 + 12 * progress + 10 * this.openBloom;
+    g.strokeStyle = `rgba(40,80,200, ${
+      0.35 + 0.4 * progress + 0.25 * this.openBloom
+    })`;
+    g.stroke();
 
-  // glow (beefed up by bloom)
-  const rg = g.createRadialGradient(cx, cy, r*0.6, cx, cy, r*1.6 + 40*this.openBloom);
-  rg.addColorStop(0, `rgba(150,180,255, ${0.18 + 0.34*progress + 0.25*this.openBloom})`);
-  rg.addColorStop(1, `rgba(150,180,255, 0)`);
-  g.globalCompositeOperation = "lighter";
-  g.fillStyle = rg;
-  g.beginPath(); g.arc(cx, cy, r*1.6 + 40*this.openBloom, 0, Math.PI*2); g.fill();
-  g.restore();
+    // glow (beefed up by bloom)
+    const rg = g.createRadialGradient(
+      cx,
+      cy,
+      r * 0.6,
+      cx,
+      cy,
+      r * 1.6 + 40 * this.openBloom
+    );
+    rg.addColorStop(
+      0,
+      `rgba(150,180,255, ${0.18 + 0.34 * progress + 0.25 * this.openBloom})`
+    );
+    rg.addColorStop(1, `rgba(150,180,255, 0)`);
+    g.globalCompositeOperation = "lighter";
+    g.fillStyle = rg;
+    g.beginPath();
+    g.arc(cx, cy, r * 1.6 + 40 * this.openBloom, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
 
-  g.globalCompositeOperation = "source-over";
-}
-
+    g.globalCompositeOperation = "source-over";
+  }
 
   private drawDebug() {
     const g = this.ctx;
@@ -479,7 +606,6 @@ private drawGateVisual() {
     g.strokeStyle = "rgba(40,80,200,0.9)";
     g.stroke();
 
-    
     g.restore();
 
     // text HUD (top-left)
