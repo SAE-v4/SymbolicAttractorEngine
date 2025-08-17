@@ -1,11 +1,3 @@
-// render/gateRenderer.ts
-type Readout = {
-  progress: number;
-  sAlign: number;
-  sBreath: number;
-  sCoherent: number;
-};
-
 export function drawGate(
   g: CanvasRenderingContext2D,
   w: number,
