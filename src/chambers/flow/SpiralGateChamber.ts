@@ -91,6 +91,7 @@ this.gate = new FlowGate(
       width: this.width,
       height: this.height,
     });
+    
   }
 
   render(_alpha: number) {

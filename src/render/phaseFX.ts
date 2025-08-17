@@ -20,7 +20,7 @@ export function drawPhaseFX(
   for (let y = 0; y < rows; y++) {
     const t = y / (rows - 1);
     const s = Math.sin(phase * Math.PI * 2 + t * Math.PI * 2);
-    const alpha = 0.06 + 0.10 * Math.max(0, s);
+    const alpha = 0.50 + 0.10 * Math.max(0, s);
     g.fillStyle = `rgba(200,210,255, ${alpha})`;
     const y0 = t * h;
     g.fillRect(0, y0 - 8, w, 16);

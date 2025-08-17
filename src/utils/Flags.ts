@@ -20,6 +20,7 @@ export type FlagsShape = {
   padVol: number;
   clickVol: number;
   witnessVol: number;
+  visualStrength: number;
 };
 
 const defaults: FlagsShape = {
@@ -43,6 +44,7 @@ const defaults: FlagsShape = {
   padVol: 0.35,
   clickVol: 0.12,
   witnessVol: 0.45,
+  visualStrength: 1.0,
 };
 
 export class Flags {
