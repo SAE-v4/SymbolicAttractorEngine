@@ -1,8 +1,11 @@
+import { getBreath } from "@utils/breath";
+
 export function drawWitness(
   g: CanvasRenderingContext2D,
-  pos: { x: number; y: number },
-  vel: { x: number; y: number },
-  facing: { x: number; y: number },
+  phase: number,
+  pos: {x:number,y:number},
+  vel: {x:number,y:number},
+  facing: {x:number,y:number},
   thrust: number
 ) {
   // velocity tail
@@ -35,4 +38,12 @@ export function drawWitness(
   g.lineTo(pos.x + facing.x * 40, pos.y + facing.y * 40);
   g.stroke();
   g.restore();
+
+    const breath = getBreath(phase);
+  const auraR = 15 + 10 * breath;
+  const aura = g.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, auraR);
+  aura.addColorStop(0, `rgba(80,120,255,${0.05 + 0.10 * breath})`);
+  aura.addColorStop(1, "rgba(80,120,255,0)");
+  g.fillStyle = aura;
+  g.beginPath(); g.arc(pos.x, pos.y, auraR, 0, Math.PI * 2); g.fill();
 }

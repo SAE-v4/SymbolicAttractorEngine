@@ -103,15 +103,18 @@ this.gate = new FlowGate(
     g.globalCompositeOperation = "source-over";
 g.clearRect(0, 0, this.width, this.height);
 
-    drawPhaseFX(g, this.services.tempo.phase(), this.width, this.height);
+ const phase = this.services.tempo.phase(); // <— one call only
+    drawPhaseFX(g, phase, this.width, this.height);
 
 // SpiralGateChamber.render(...)
-drawGate(this.ctx, this.width, this.height, this.gate.readout, this.openBloom);
+drawGate(g, phase, this.width, this.height, this.gate.readout, this.openBloom);
 
 
 
     drawWitness(
       g,
+      phase,
+
       this.motion.pos,
       this.motion.vel,
       this.motion.facing,
