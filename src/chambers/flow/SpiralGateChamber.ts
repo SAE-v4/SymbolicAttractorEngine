@@ -4,6 +4,8 @@ import { drawPhaseFX } from "@render/phaseFX";
 import { drawGate } from "@render/gateRenderer";
 import { drawWitness } from "@render/WitnessRenderer";
 import { AudioSystem } from "@systems/audio/AudioSystem";
+import { drawWitnessDebug } from "debug/overlay";
+
 
 export class SpiralGateChamber {
   private ctx: CanvasRenderingContext2D;
@@ -99,6 +101,7 @@ this.gate = new FlowGate(
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalAlpha = 1;
     g.globalCompositeOperation = "source-over";
+g.clearRect(0, 0, this.width, this.height);
 
     drawPhaseFX(g, this.services.tempo.phase(), this.width, this.height);
 
@@ -114,5 +117,7 @@ drawGate(this.ctx, this.width, this.height, this.gate.readout, this.openBloom);
       this.motion.facing,
       this.motion.thrust
     );
+
+  // drawWitnessDebug(g, this.motion.pos, this.motion.facing); // or world→screen(posWorld)
   }
 }
