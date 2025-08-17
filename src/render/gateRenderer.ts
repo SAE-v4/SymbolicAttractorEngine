@@ -36,7 +36,16 @@ export function drawGate(
   g.fill();
 
   const coherenceProduct = readout.sAlign * readout.sBreath * readout.sCoherent;
-
+if (coherenceProduct > 0.1) {
+  const glow = Math.min(1, Math.pow(coherenceProduct, 2));
+  g.save();
+  g.strokeStyle = `hsla(${200 + 60 * glow}, 100%, 70%, ${0.2 + glow * 0.4})`;
+  g.lineWidth = 20 * glow;
+  g.beginPath();
+  g.arc(cx, cy, radius + 15, 0, Math.PI * 2);
+  g.stroke();
+  g.restore();
+}
 
   g.restore();
 }
