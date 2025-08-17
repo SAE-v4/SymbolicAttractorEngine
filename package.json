@@ -13,5 +13,10 @@
     "typescript": "^5.5.4",
     "vite": "^5.4.0",
     "vite-tsconfig-paths": "^5.1.4"
+  },
+    "dependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "js-yaml": "^4.1.0"
   }
+  
 }

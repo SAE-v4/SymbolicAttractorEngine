@@ -5,6 +5,7 @@ import { drawGate } from "@render/gateRenderer";
 import { drawWitness } from "@render/WitnessRenderer";
 import { AudioSystem } from "@systems/audio/AudioSystem";
 import { drawWitnessDebug } from "debug/overlay";
+import { ChamberDef } from "@types/ChamberDef";
 
 
 export class SpiralGateChamber {
@@ -18,8 +19,7 @@ export class SpiralGateChamber {
   constructor(
     private canvas: HTMLCanvasElement,
     private services: Services,
-    private flags: Flags,
-    private audio: AudioSystem
+    private def: ChamberDef,
   ) {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("2D context not available");

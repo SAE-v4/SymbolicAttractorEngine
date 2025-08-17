@@ -3,16 +3,13 @@ import { SpiralGateChamber } from "@chambers/SpiralGateChamber";
 import { WitnessControls } from "./controls/WitnessControls";
 import { Flags } from "./utils/Flags";
 import { TempoEngine } from "./tempo/TempoEngine";
-import { applyBreathTuningFromQueryOnce } from "@config/applyBreathTuning";
+import { applyBreathTuningFromQueryOnce } from "@config/applyBreathTuning"; 
+import { loadChamberDef } from "@utils/chamberLoader";
 
 applyBreathTuningFromQueryOnce();
+  const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
 
-const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
-const tempo = new TempoEngine();
-const flags = new Flags();
-
-
-const services = {
+ const services = {
   tempo: {
     phase: () => tempo.phase(),
     getBpm: () => tempo.getBpm(),
@@ -20,10 +17,13 @@ const services = {
     onBeat: (k: string, fn: () => void) => tempo.onBeat(k, fn),
   },
 };
+async function init() {
+  const def = await loadChamberDef("spiral.yaml");
+  const chamber = new SpiralGateChamber(canvas, services, def, {});
 
-const chamber = new SpiralGateChamber(canvas, services, flags);
 
-new WitnessControls(
+ 
+  new WitnessControls(
   canvas,
   (dx,dy) => chamber.setWitnessFacing(dx,dy),
   (amt)   => chamber.thrustWitness(amt),
@@ -37,3 +37,6 @@ const loop = new EngineLoop({
   onRender: (a) => chamber.render(a),
 });
 loop.start();
+}
+
+init();
