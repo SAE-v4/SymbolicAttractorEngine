@@ -27,11 +27,13 @@ export class SpiralGateChamber {
       maxSpeed: flags.all.maxSpeed,
     });
     this.handleResize();
-    this.gate = new FlowGate(
-      { x: this.width * 0.5, y: this.height * 0.5 },
-      () => services.tempo.phase(),
-      flags.all.gateDir
-    );
+this.gate = new FlowGate(
+  { x: this.width * 0.5, y: this.height * 0.5 },
+  () => this.services.tempo.phase(),
+  this.flags.all.gateDir ?? 1,
+  0.9,                   // friendliness (higher = easier)
+  { all: this.flags.all } // pass flags so openThreshold/openSeconds can be overridden
+);
 
     this.audio = new AudioSystem( this.flags );
     addEventListener("resize", () => this.handleResize());
@@ -83,9 +85,8 @@ export class SpiralGateChamber {
       thrust: this.motion.thrust,
       gate: {
         ...this.gate.readout,
-        coherence: coherenceProduct        
-
-        //  justOpened: (this as any).gate?.consumeJustOpened?.?.() // if you added that pulse
+        coherence: coherenceProduct,        
+        justOpened: this.gate.consumeJustOpened()
       },
       width: this.width,
       height: this.height,
@@ -99,7 +100,12 @@ export class SpiralGateChamber {
     g.globalCompositeOperation = "source-over";
 
     drawPhaseFX(g, this.services.tempo.phase(), this.width, this.height);
-    drawGate(g, this.width, this.height, this.gate.readout, this.openBloom);
+
+// SpiralGateChamber.render(...)
+drawGate(this.ctx, this.width, this.height, this.gate.readout, this.openBloom);
+
+
+
     drawWitness(
       g,
       this.motion.pos,
