@@ -1,17 +1,26 @@
 // utils/Flags.ts
 export type FlagsShape = {
-  assistLevel: number;        // 0..1
-  softWall: boolean;          // use contain vs wrap
-  accel: number;              // px/s^2 (pre-scale)
-  maxSpeed: number;           // px/s   (pre-scale)
-  noInputDamp: number;        // extra damping/sec when not steering
-  edgePull: number;           // inward pull base
-  edgeDamp: number;           // extra damping at edge
-  gateDir: 1 | -1;            // CCW or CW
-  openThreshold: number;      // 0..1
-  openSeconds: number;        // time to fill
-  decayPerSec: number;        // progress decay
-  breathTolerance: number;    // 0..1
+  assistLevel: number; // 0..1
+  softWall: boolean; // use contain vs wrap
+  accel: number; // px/s^2 (pre-scale)
+  maxSpeed: number; // px/s   (pre-scale)
+  noInputDamp: number; // extra damping/sec when not steering
+  edgePull: number; // inward pull base
+  edgeDamp: number; // extra damping at edge
+  gateDir: 1 | -1; // CCW or CW
+  openThreshold: number; // 0..1
+  openSeconds: number; // time to fill
+  decayPerSec: number; // progress decay
+  breathTolerance: number; // 0..1
+  audioEnabled: boolean;
+  audioPad: boolean;
+  audioClick: boolean;
+  audioWitness: boolean;
+  masterVol: number;
+  padVol: number;
+  clickVol: number;
+  witnessVol: number;
+  visualStrength: number;
 };
 
 const defaults: FlagsShape = {
@@ -27,6 +36,15 @@ const defaults: FlagsShape = {
   openSeconds: 1.9,
   decayPerSec: 0.16,
   breathTolerance: 0.22,
+  audioEnabled: true,
+  audioPad: true,
+  audioClick: true,
+  audioWitness: true,
+  masterVol: 0.8,
+  padVol: 0.35,
+  clickVol: 0.12,
+  witnessVol: 0.45,
+  visualStrength: 1.0,
 };
 
 export class Flags {
@@ -37,7 +55,9 @@ export class Flags {
     this.applyQuery();
     (window as any).Flags = this; // dev console access
   }
-  get all() { return this.v; }
+  get all() {
+    return this.v;
+  }
   set(partial: Partial<FlagsShape>) {
     this.v = { ...this.v, ...partial };
     localStorage.setItem("sae.flags", JSON.stringify(this.v));
@@ -50,7 +70,9 @@ export class Flags {
     try {
       const raw = localStorage.getItem("sae.flags");
       if (raw) this.v = { ...this.v, ...JSON.parse(raw) };
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
   private applyQuery() {
     const u = new URL(location.href);
