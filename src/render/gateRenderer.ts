@@ -1,5 +1,8 @@
 type Readout = {
   progress: number;
+  sAlign: number;
+  sBreath: number;
+  sCoherent: number;
 };
 
 export function drawGate(
@@ -31,6 +34,9 @@ export function drawGate(
   g.beginPath();
   g.arc(cx, cy, r * 1.6 + 40 * bloom, 0, Math.PI * 2);
   g.fill();
+
+  const coherenceProduct = readout.sAlign * readout.sBreath * readout.sCoherent;
+
 
   g.restore();
 }

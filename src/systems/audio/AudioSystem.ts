@@ -9,6 +9,7 @@ export type AudioInputs = {
     progress: number;          // 0..1
     sAlign: number; sBreath: number; sCoherent: number;
     justOpened?: boolean;      // pulse hook if you have it
+    coherence: number;
   };
   width: number; height: number;
 };
@@ -22,6 +23,7 @@ export class AudioSystem {
   private pad = { oscA: null as OscillatorNode|null, oscB: null as OscillatorNode|null, filt: null as BiquadFilterNode|null, amp: null as GainNode|null };
   private witness = { noise: null as AudioBufferSourceNode|null, filt: null as BiquadFilterNode|null, pan: null as StereoPannerNode|null, amp: null as GainNode|null, loopBuf: null as AudioBuffer|null };
   private lastQuarter = -1;
+  private shimmer: object;
 
   constructor(private flags: { all: any }) {}
 
@@ -31,7 +33,6 @@ export class AudioSystem {
     const Ctx = (window.AudioContext || (window as any).webkitAudioContext);
     this.ctx = new Ctx();
     const { ctx } = this;
-
     // master & buses
     this.master = ctx.createGain(); this.master.gain.value = this.flags.all.masterVol ?? 0.8;
     const comp = ctx.createDynamicsCompressor(); // light glue
@@ -111,6 +112,38 @@ export class AudioSystem {
       const target = Math.min(0.9, (base + flow) * (0.6 + 0.6 * i.gate.progress));
       this.smooth(this.witness.amp.gain, target, 0.25);
     }
+
+
+// --- Shimmer: noise layer modulated by coherence
+const coherenceProduct = i.gate.coherence; // already computed in FlowGate
+
+if (!this.shimmer) {
+  const bufferSize = 2 * this.ctx.sampleRate;
+  const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+  const noise = this.ctx.createBufferSource();
+  noise.buffer = noiseBuffer;
+  noise.loop = true;
+
+  const filter = this.ctx.createBiquadFilter();
+  filter.type = "highpass";
+  filter.frequency.value = 4000;
+
+  const gain = this.ctx.createGain();
+  gain.gain.value = 0;
+
+  noise.connect(filter).connect(gain).connect(this.master);
+  noise.start();
+
+  this.shimmer = { noise, filter, gain };
+}
+
+// smooth shimmer modulation
+this.smooth(this.shimmer.gain.gain, Math.min(0.4, coherenceProduct * 0.4), 0.2);
+
+
 
     // --- Gate chime
     if (i.gate.justOpened) this.chime();

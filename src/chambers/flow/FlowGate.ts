@@ -17,6 +17,7 @@ export type FlowGateReadout = {
   sBreath: number; // 0..1 (thrust vs target envelope)
   targetThrust: number; // 0..1
   tangent: Vec2; // spiral tangent at pos (unit)
+  coherance: number
 };
 
 export class FlowGate {
@@ -48,6 +49,7 @@ public setLatch(seconds: number) { this.latchTimer = Math.max(this.latchTimer, s
     sBreath: 0,
     targetThrust: 0.5,
     tangent: { x: 1, y: 0 },
+    coherance: 0
   };
 
 constructor(center: Vec2, phaseFn: () => number, dir: 1 | -1 = 1, friendliness = 1, flags?: { all: any }) {

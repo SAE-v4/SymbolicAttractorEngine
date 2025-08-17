@@ -70,6 +70,10 @@ export class SpiralGateChamber {
       this.motion.facing,
       this.motion.thrust
     );
+    const coherenceProduct =
+  this.gate.readout.sAlign *
+  this.gate.readout.sBreath *
+  this.gate.readout.sCoherent;
 
     this.audio.update(dt, {
       phase: this.services.tempo.phase(),
@@ -78,10 +82,9 @@ export class SpiralGateChamber {
       facing: this.motion.facing,
       thrust: this.motion.thrust,
       gate: {
-        progress: this.gate.readout.progress,
-        sAlign: this.gate.readout.sAlign,
-        sBreath: this.gate.readout.sBreath,
-        sCoherent: this.gate.readout.sCoherent,
+        ...this.gate.readout,
+        coherence: coherenceProduct        
+
         //  justOpened: (this as any).gate?.consumeJustOpened?.?.() // if you added that pulse
       },
       width: this.width,
