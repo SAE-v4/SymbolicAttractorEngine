@@ -1,0 +1,44 @@
+id: spiral-gate
+title: Spiral Gate
+description: Attune by spiraling CCW in time with breath.
+
+systems:
+  motion:
+    accel: 0.30
+    maxSpeed: 1.80
+    softWall: true
+
+  gate:
+    dir: 1
+    friendliness: 0.90
+    openThreshold: 0.75
+    openSeconds: 2.5
+
+  breath:
+    shape: 1.0
+    offset: 0.0
+    beatWidth: 0.08
+    band:
+      alphaBase: 0.20
+      alphaGain: 0.40
+      alphaBeat: 0.10
+    witness:
+      auraRBase: 18
+      auraRGain: 18
+      auraABase: 0.12
+      auraAGain: 0.18
+    gate:
+      swellPct: 0.03
+      ringAlphaMax: 0.90
+      glowAlphaMax: 0.90
+
+  audio:
+    enabled: true
+    audioClick: true
+    pad: spiralPad
+    chime: spiralChime
+    masterGain: 0.8
+
+debug:
+  showWitnessVel: false
+  showGateHalo: true

@@ -1,7 +1,13 @@
-import { load } from "js-yaml";
-import type { ChamberDef } from "@types/ChamberDef";
+// utils/chamberLoader.ts
+import yaml from "js-yaml";
 
-export async function loadChamberDef(path: string): Promise<ChamberDef> {
-  const text = await fetch(path).then(r => r.text());
-  return load(text) as ChamberDef;
+export async function loadChamberDefPublic(path: string) {
+  const res = await fetch(path); // e.g. "/chambers/spiral-gate.yaml"
+  const text = await res.text();
+
+  // sanity guard: if dev server returned index.html
+  if (res.headers.get("content-type")?.includes("text/html")) {
+    throw new Error(`Expected YAML, got HTML from ${path}`);
+  }
+  return yaml.load(text);
 }

@@ -1,43 +1,50 @@
-import { EngineLoop } from "./engine/EngineLoop";
+import { loadChamberDefPublic } from "@utils/chamberLoader";
+import type { Services } from "@types/Services";
 import { SpiralGateChamber } from "@chambers/SpiralGateChamber";
-import { WitnessControls } from "./controls/WitnessControls";
-import { Flags } from "./utils/Flags";
-import { TempoEngine } from "./tempo/TempoEngine";
-import { applyBreathTuningFromQueryOnce } from "@config/applyBreathTuning"; 
-import { loadChamberDef } from "@utils/chamberLoader";
+import { Tempo } from "@systems/tempo";   // 👈 bring back tempo system
 
-applyBreathTuningFromQueryOnce();
-  const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
-  const tempo = new TempoEngine();
+let chamber: SpiralGateChamber | null = null;
 
- const services = {
-  tempo: {
-    phase: () => tempo.phase(),
-    getBpm: () => tempo.getBpm(),
-    setBpm: (v:number) => tempo.setBpm(v),
-    onBeat: (k: string, fn: () => void) => tempo.onBeat(k, fn),
-  },
-};
 async function init() {
-  const def = await loadChamberDef("spiral.yaml");
-  const chamber = new SpiralGateChamber(canvas, services, def, {});
+  const def = await loadChamberDefPublic("/chambers/spiral-gate.yaml");
 
+  const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
 
- 
-  new WitnessControls(
-  canvas,
-  (dx,dy) => chamber.setWitnessFacing(dx,dy),
-  (amt)   => chamber.thrustWitness(amt),
-  ()      => chamber.getWitnessPos()
-);
+  // Create tempo instance
+  const tempo = new Tempo();
 
-services.tempo.onBeat("quarter", () => chamber.onBeat?.());
+  // Wrap it in your Services object
+  const services: Services = {
+    tempo: {
+      phase: () => tempo.phase(),
+      getBpm: () => tempo.getBpm(),
+      setBpm: (v: number) => tempo.setBpm(v),
+      onBeat: (k: string, fn: () => void) => tempo.onBeat(k, fn),
+    },
+  };
 
-const loop = new EngineLoop({
-  onUpdate: (dt) => { tempo.tick(dt); chamber.update(dt); },
-  onRender: (a) => chamber.render(a),
-});
-loop.start();
+  chamber = new SpiralGateChamber(canvas, services, def);
+
+  // Example controls
+  window.addEventListener("pointermove", (e) => {
+    if (!chamber) return;
+    // map pointer to facing
+  });
+
+  startLoop();
+}
+
+function startLoop() {
+  if (!chamber) return;
+  let last = performance.now();
+  function tick(now: number) {
+    const dt = (now - last) / 1000;
+    last = now;
+    chamber!.update(dt);
+    chamber!.render(1);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 }
 
 init();

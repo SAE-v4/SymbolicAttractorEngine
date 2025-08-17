@@ -1,12 +1,12 @@
 // A lightweight musical clock: 1 bar = 4 beats (4/4) by default.
 // Emits beat events via onBeat() subscriptions and exposes bar phase [0..1).
 
-import { crossed } from "../utils/phaseUtils";
+import { crossed } from "@utils/phaseUtils";
 
 type BeatKind = "downbeat" | "quarter" | "eighth";
 type Listener = (t: number) => void;
 
-export class TempoEngine {
+export class Tempo {
   private bpm = 90;
   private beatsPerBar = 4;     // 4/4 for now
   private barPhase = 0;        // 0..1
