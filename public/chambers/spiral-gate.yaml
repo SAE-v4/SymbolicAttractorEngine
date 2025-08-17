@@ -4,9 +4,9 @@ description: Attune by spiraling CCW in time with breath.
 
 systems:
   motion:
-    accel: 0.30
-    maxSpeed: 1.80
-    softWall: true
+    accel: 900        # px/s^2
+    maxSpeed: 600     # px/s
+    damping: 0.92
 
   gate:
     dir: 1
