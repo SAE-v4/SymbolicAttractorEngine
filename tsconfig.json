@@ -16,7 +16,9 @@
       "@systems/*": ["systems/*"],
       "@render/*": ["render/*"],
       "@utils/*": ["utils/*"],
-      "@config/*": ["config/*"]
+      "@config/*": ["config/*"],
+      "@chambers/*": ["chambers/*"],
+      "@types/*": ["types/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

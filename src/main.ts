@@ -1,5 +1,5 @@
 import { EngineLoop } from "./engine/EngineLoop";
-import { SpiralGateChamber } from "./chambers/flow/SpiralGateChamber";
+import { SpiralGateChamber } from "@chambers/SpiralGateChamber";
 import { WitnessControls } from "./controls/WitnessControls";
 import { Flags } from "./utils/Flags";
 import { TempoEngine } from "./tempo/TempoEngine";
