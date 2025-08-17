@@ -8,6 +8,7 @@ import { loadChamberDef } from "@utils/chamberLoader";
 
 applyBreathTuningFromQueryOnce();
   const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
+  const tempo = new TempoEngine();
 
  const services = {
   tempo: {
