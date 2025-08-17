@@ -3,10 +3,14 @@ import { SpiralGateChamber } from "./chambers/flow/SpiralGateChamber";
 import { WitnessControls } from "./controls/WitnessControls";
 import { Flags } from "./utils/Flags";
 import { TempoEngine } from "./tempo/TempoEngine";
+import { applyBreathTuningFromQueryOnce } from "@config/applyBreathTuning";
+
+applyBreathTuningFromQueryOnce();
 
 const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
 const tempo = new TempoEngine();
 const flags = new Flags();
+
 
 const services = {
   tempo: {
