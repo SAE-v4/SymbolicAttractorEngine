@@ -1,5 +1,5 @@
-import { ChamberBase } from "./ChamberBase";
-import { WitnessNode } from "../actors/WitnessNode";
+import { ChamberBase } from "../_legacy/_chambers/ChamberBase";
+import { WitnessNode } from "../_legacy/actors/WitnessNode";
 
 export class LookingGlassChamber extends ChamberBase {
   phase = 0;

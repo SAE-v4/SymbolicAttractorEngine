@@ -1,5 +1,5 @@
 // src/chambers/defs/lookingGlass.def.ts
-import { ChamberDefinition } from "../core/defs";
+import { ChamberDefinition } from "../../_legacy/_chambers/core/defs";
 
 export const lookingGlassDef: ChamberDefinition = {
   id: "looking-glass",

@@ -1,4 +1,4 @@
-import { getBreath } from "@utils/breath";
+import { getBreath } from "_legacy/utils/breath";
 import { BREATH_TUNING as T } from "@config/breath";
 
 export function drawWitness(

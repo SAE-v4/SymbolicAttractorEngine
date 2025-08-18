@@ -1,0 +1,19 @@
+systems:
+  breath:
+    mode: freeRun
+    rateBPM: 9
+    depth: 1.0
+    shape:
+      inhaleRatio: 0.45
+      holdIn: 0.05
+      exhaleRatio: 0.45
+      holdOut: 0.05
+      curveInhale: easeInOutSine
+      curveExhale: easeInOutSine
+    variability: { enabled: true, jitterPct: 0.04, seed: 137 }
+    bindings:
+      motion:
+        accelBoost: { source: velocity, scale: 0.2 }
+        sway:       { source: breathSS, scale: 0.03 }
+      visuals:
+        bloom:      { source: breath01, scale: 0.5 }

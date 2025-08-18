@@ -1,4 +1,4 @@
-import { getBreath, getDownbeat } from "@utils/breath";
+import { getBreath, getDownbeat } from "_legacy/utils/breath";
 import { BREATH_TUNING as T } from "@config/breath";
 
 export function drawPhaseFX(g: CanvasRenderingContext2D, phase: number, w: number, h: number) {
