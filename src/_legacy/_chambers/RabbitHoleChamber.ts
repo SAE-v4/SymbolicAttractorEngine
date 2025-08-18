@@ -1,4 +1,4 @@
-import { ChamberBase } from "../_legacy/_chambers/core/ChamberBase";
+import { ChamberBase } from "./core/ChamberBase";
 
 type EntityKind = "key" | "card";
 type Entity = {

@@ -1,6 +1,6 @@
 // src/chambers/flow/FlowModeChamber.ts
-import { ChamberBase } from "../../_legacy/_chambers/core/ChamberBase";
-import { PhaseFX } from "../../_legacy/vis/phaseFX";
+import { ChamberBase } from "./core/ChamberBase";
+import { PhaseFX } from "../vis/phaseFX";
 
 export class FlowModeChamber extends ChamberBase {
   private fx: PhaseFX;

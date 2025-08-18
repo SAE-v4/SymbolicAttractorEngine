@@ -14,9 +14,13 @@
     "paths": {
       "@engine/*": ["engine/*"],
       "@systems/*": ["systems/*"],
-      "@render/*": ["render/*"],
       "@utils/*": ["utils/*"],
-      "@config/*": ["config/*"]
+      "@config/*": ["config/*"],
+      "@modulation/*": ["modulation/*"],
+      "@types/*": ["types/*"],
+      "@renderer/*": ["renderer/*"],
+      "@chambers/*": ["chambers/*"]
+
     }
   },
   "include": ["src", "vite.config.ts"]

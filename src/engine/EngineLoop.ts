@@ -1,4 +1,5 @@
 // src/engine/EngineLoop.ts (snippet)
+import { EngineClock } from "./EngineClock";
 const clock = new EngineClock();
 function frame() {
   const dt = clock.tick();
