@@ -1,12 +1,6 @@
 html, body, #engine-root { height: 100%; margin: 0; user-select: none; -webkit-user-select: none; }
-#engine-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+#engine-canvas {position: fixed; inset: 0; width: 100vw; height: 100vh; touch-action: none; display:block}
 
 :root { --breath01: 0; --breathVel: 0; }
-body {
-  background: radial-gradient(120vmin 120vmin at 50% 60%,
-    rgba(150,180,255, calc(0.18 + 0.34*var(--breath01))) 0%,
-    rgba(150,180,255, 0) 60%),
-  linear-gradient(#0e1c2a, #243c5a);
-  transition: background 60ms linear;
-}
+
 
