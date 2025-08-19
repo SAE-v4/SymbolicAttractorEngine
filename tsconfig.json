@@ -18,10 +18,10 @@
       "@config/*": ["config/*"],
       "@modulation/*": ["modulation/*"],
       "@types/*": ["types/*"],
-      "@renderer/*": ["renderer/*"],
+      "@renderers/*": ["renderer/*"],
       "@chambers/*": ["chambers/*"]
 
     }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts", "_legacy/_chambers/flow"]
 }

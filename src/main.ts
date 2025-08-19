@@ -1,5 +1,5 @@
 import { BreathRuntime, type BreathConfig } from './systems/breath/BreathRuntime';
-import { SkyGLRenderer } from '@renderer/skygl/skyGLRenderer';
+import { SkyGLRenderer } from 'renderers/skygl/skyGLRenderer';
 
 const canvas = document.createElement('canvas');
 Object.assign(canvas.style, { position:'fixed', inset:'0', width:'100vw', height:'100vh', display:'block' });
