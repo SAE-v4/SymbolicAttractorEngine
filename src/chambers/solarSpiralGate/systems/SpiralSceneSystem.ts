@@ -2,18 +2,26 @@
 import type { ChamberSystem } from "@engine/ChamberSystem";
 import { genSpiralPolylinePoints } from "../spiral/SpiralGenerator";
 import { SceneCanvas } from "../spiral/SceneCanvas";
-import type { Knot, SpiralConfig, RingClockConfig, TravelerConfig } from "../spiral/types";
+import type {
+  Knot,
+  SpiralConfig,
+  RingClockConfig,
+  TravelerConfig,
+} from "../spiral/types";
 
-const applyBreathScale = (r: number, breathSS: number, eps: number) => r * (1 + eps * breathSS);
+const applyBreathScale = (r: number, breathSS: number, eps: number) =>
+  r * (1 + eps * breathSS);
 const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.max(lo, Math.min(hi, v));
 
 type Cache = {
   pts: [number, number][];
   spiralScale: number;
   ribbonWidth: number;
   travelerPos: [number, number];
+  travelerAngle: number;
 };
 
 export function createSpiralSceneSystem(
@@ -24,7 +32,9 @@ export function createSpiralSceneSystem(
   opts?: { stepsPerTurn?: number; knotStride?: number }
 ): ChamberSystem {
   const stepsPerTurn = opts?.stepsPerTurn ?? 160;
-  const knotStride   = opts?.knotStride   ?? 80;
+  const knotStride = opts?.knotStride ?? 80;
+
+  let denseBase: [number, number][] = []; // base path at breathSS=0
 
   let knots: Knot[] = [];
   let knotGlow: number[] = [];
@@ -33,19 +43,28 @@ export function createSpiralSceneSystem(
   // traveler anim state
   let travelerIdx = travelerCfg?.startIndex ?? 0;
   let moveFrom = travelerIdx;
-  let moveTo   = travelerIdx;
-  let moveT    = 1;                           // 1 = at target
-  const moveDur  = travelerCfg?.moveDur  ?? 0.6;
+  let moveTo = travelerIdx;
+  let moveT = 1; // 1 = at target
+  const moveDur = travelerCfg?.moveDur ?? 0.6;
   const leanGain = travelerCfg?.leanGain ?? 0.04;
 
   let cache: Cache | null = null;
 
   function rebuildKnots(baseBreathSS = 0) {
-    const dense = genSpiralPolylinePoints(cfg, stepsPerTurn, baseBreathSS, cfg.breathe.scaleEpsilon);
+    const dense = genSpiralPolylinePoints(
+      cfg,
+      stepsPerTurn,
+      baseBreathSS,
+      cfg.breathe.scaleEpsilon
+    );
     const ks: Knot[] = [];
     for (let i = 0; i < dense.length; i += knotStride) {
       const [nx, ny] = dense[i];
-      ks.push({ theta: Math.atan2(ny, nx), r: Math.hypot(nx, ny), pos: [nx, ny] });
+      ks.push({
+        theta: Math.atan2(ny, nx),
+        r: Math.hypot(nx, ny),
+        pos: [nx, ny],
+      });
     }
     knots = ks;
     knotGlow = new Array(knots.length).fill(0);
@@ -53,6 +72,12 @@ export function createSpiralSceneSystem(
     travelerIdx = clamp(travelerIdx, 0, Math.max(0, knots.length - 1));
     moveFrom = moveTo = travelerIdx;
     moveT = 1;
+    denseBase = genSpiralPolylinePoints(
+      cfg,
+      stepsPerTurn,
+      0,
+      cfg.breathe.scaleEpsilon
+    );
   }
   rebuildKnots(0);
 
@@ -64,15 +89,20 @@ export function createSpiralSceneSystem(
       const { breath } = ctx;
 
       const spiralScale = 1 + cfg.breathe.scaleEpsilon * breath.breathSS;
-      const ribbonWidth = 1 + cfg.breathe.widthGain     * breath.breath01;
+      const ribbonWidth = 1 + cfg.breathe.widthGain * breath.breath01;
 
       // ring radius in normalized units
       const ringR = ring.rBase + ring.rGain * breath.breath01;
 
-      // gating → start traveler move
+      // gating → start traveler move (first rising-edge crossing)
       for (let i = travelerIdx; i < knots.length; i++) {
-        const rK = applyBreathScale(knots[i].r, breath.breathSS, cfg.breathe.scaleEpsilon);
+        const rK = applyBreathScale(
+          knots[i].r,
+          breath.breathSS,
+          cfg.breathe.scaleEpsilon
+        );
         if (ringPrev < rK && ringR >= rK) {
+          // step one knot at a time
           moveFrom = travelerIdx;
           moveTo = i;
           moveT = 0;
@@ -87,34 +117,72 @@ export function createSpiralSceneSystem(
         knotGlow[i] = Math.max(0, knotGlow[i] - dt * 2.2);
       }
 
-      // fresh polyline for this frame (already morphs with breathSS)
-      const pts = genSpiralPolylinePoints(cfg, stepsPerTurn, breath.breathSS, cfg.breathe.scaleEpsilon);
+      // fresh (scaled) polyline for this frame → used to draw the ribbon
+      const pts = genSpiralPolylinePoints(
+        cfg,
+        stepsPerTurn,
+        breath.breathSS,
+        cfg.breathe.scaleEpsilon
+      );
 
-      // traveler easing
+      // traveler easing progress
       if (moveT < 1) {
-        moveT = Math.min(1, moveT + dt / Math.max(0.001, moveDur));
+        moveT = Math.min(
+          1,
+          moveT + dt / Math.max(0.001, travelerCfg?.moveDur ?? 0.6)
+        );
         if (moveT >= 1) travelerIdx = moveTo;
       }
 
-      // eased traveler position + subtle breath-velocity “lean”
-      const a = knots[moveFrom]?.pos ?? knots[travelerIdx]?.pos ?? [0, 0];
-      const b = knots[moveTo]?.pos   ?? knots[travelerIdx]?.pos ?? [0, 0];
-      const te = easeOutCubic(moveT);
-      let tx = lerp(a[0], b[0], te);
-      let ty = lerp(a[1], b[1], te);
+      // --- move ALONG the spiral polyline (base path), not a chord ---
+      // map knot indices to denseBase indices (we picked knots via `knotStride`)
+      const fromI = Math.max(
+        0,
+        Math.min(denseBase.length - 2, moveFrom * (opts?.knotStride ?? 80))
+      );
+      const toI = Math.max(
+        0,
+        Math.min(denseBase.length - 1, moveTo * (opts?.knotStride ?? 80))
+      );
 
-      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const te = 1 - Math.pow(1 - moveT, 3); // easeOutCubic
+      const fIndex = fromI + (toI - fromI) * te;
+      const i0 = Math.max(
+        0,
+        Math.min(denseBase.length - 2, Math.floor(fIndex))
+      );
+      const tLocal = fIndex - i0;
+
+      // interpolate along the local segment of the base path
+      const ax = denseBase[i0][0],
+        ay = denseBase[i0][1];
+        
+      const bx = denseBase[i0 + 1][0],
+        by = denseBase[i0 + 1][1];
+        
+      let tx = ax + (bx - ax) * tLocal;
+      let ty = ay + (by - ay) * tLocal;
+
+      const angle = Math.atan2(by - ay, bx - ax);
+
+
+      // subtle “lean” using the segment normal, scaled by breath velocity
+      const dx = bx - ax,
+        dy = by - ay;
       const len = Math.hypot(dx, dy) || 1;
-      const nx = -dy / len, ny = dx / len;
-      const lean = (travelerCfg?.leanGain ?? leanGain) * (breath.velocity || 0);
-      tx += nx * lean; ty += ny * lean;
+      const nx = -dy / len,
+        ny = dx / len;
+      const lean = (travelerCfg?.leanGain ?? 0.04) * (breath.velocity || 0);
+      tx += nx * lean;
+      ty += ny * lean;
 
-      cache = { pts, spiralScale, ribbonWidth, travelerPos: [tx, ty] };
+      // cache for render (travelerPos is in base/normalized units; painter scales via spiralScale)
+     cache = { pts, spiralScale, ribbonWidth, travelerPos: [tx, ty], travelerAngle: angle };
     },
 
     render(ctx) {
       if (!cache) return;
-      const { pts, spiralScale, ribbonWidth, travelerPos } = cache;
+      const { pts, spiralScale, ribbonWidth, travelerPos, travelerAngle } = cache;
 
       // ribbon
       painter.drawSpiralPolyline(pts, ribbonWidth);
@@ -125,7 +193,7 @@ export function createSpiralSceneSystem(
       }
 
       // traveler
-      painter.drawTraveler(travelerPos, spiralScale, ctx.breath.breath01);
+      painter.drawTraveler(travelerPos, spiralScale, ctx.breath.breath01, travelerAngle);
     },
   };
 }

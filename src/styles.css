@@ -17,10 +17,3 @@ html, body, #engine-root { height: 100%; margin: 0; user-select: none; -webkit-u
   display: block;
 }
 
-/* optional: give a stacking layer for HUD etc. */
-.hud {
-  position: fixed;
-  left: 12px;
-  top: 12px;
-  z-index: 30;
-}
