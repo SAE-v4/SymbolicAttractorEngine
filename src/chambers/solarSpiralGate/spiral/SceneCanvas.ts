@@ -1,6 +1,8 @@
 // 2D-ctx scene painter: ribbon, knots, traveler glyph
 import { getViewport, normToPx } from "@utils/coords";
 import type { Knot, SpiralConfig } from "./types";
+import { ribbonColor } from "@systems/colorBreath";
+
 
 export class SceneCanvas {
   constructor(
@@ -44,10 +46,13 @@ export class SceneCanvas {
     ctx.restore();
   }
 
-  drawSpiralPolyline(pts: [number, number][], ribbonWidth: number) {
+  drawSpiralPolyline(pts: [number, number][], ribbonWidth: number, breath01) {
     const ctx = this.ctx;
     const vp = getViewport(this.canvas);
+    const col = ribbonColor(breath01/* or pass breath01 into painter */)
+    
     ctx.save();
+    ctx.strokeStyle = col;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.globalCompositeOperation = "lighter";

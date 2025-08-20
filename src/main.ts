@@ -119,6 +119,10 @@ function frame(t: number) {
     breathSS: breath.state.breathSS,
     velocity: breath.state.velocity,
   });
+
+  sky.setGrade({ gradeSat: 1.22, gradeLift: 0.030, yGamma: 1.30, vignette: 0.22 });
+//sky.setParams({ bandAlphaBase: 0.12, bandAlphaGain: 0.24, bandFreq: 7.0 });
+
   sky.render(t / 1000);
 
   // clear the scene overlay to transparent (CSS px since ctx is scaled)

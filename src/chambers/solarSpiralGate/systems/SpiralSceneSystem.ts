@@ -2,6 +2,7 @@
 import type { ChamberSystem } from "@engine/ChamberSystem";
 import { genSpiralPolylinePoints } from "../spiral/SpiralGenerator";
 import { SceneCanvas } from "../spiral/SceneCanvas";
+
 import type {
   Knot,
   SpiralConfig,
@@ -35,6 +36,9 @@ export function createSpiralSceneSystem(
   const knotStride = opts?.knotStride ?? 80;
 
   let denseBase: [number, number][] = []; // base path at breathSS=0
+
+  let tWave = 0; // time accumulator for wave
+  const TAU = Math.PI * 2;
 
   let knots: Knot[] = [];
   let knotGlow: number[] = [];
@@ -117,13 +121,54 @@ export function createSpiralSceneSystem(
         knotGlow[i] = Math.max(0, knotGlow[i] - dt * 2.2);
       }
 
-      // fresh (scaled) polyline for this frame → used to draw the ribbon
+      tWave += dt;
+
+      // fresh (scaled) polyline this frame
       const pts = genSpiralPolylinePoints(
         cfg,
         stepsPerTurn,
         breath.breathSS,
         cfg.breathe.scaleEpsilon
       );
+
+      // ---- apply peristaltic wave (offset along normals) ----
+      function withPeristalsis(src: [number, number][]): [number, number][] {
+        const peri = cfg.breathe.peristalsis;
+        const amp0 = peri?.amp ?? 0; // normalized units (of minDim)
+        if (amp0 <= 0) return src;
+
+        // cumulative distances for a 0..1 path parameter u
+        const acc: number[] = [0];
+        let total = 0;
+        for (let i = 1; i < src.length; i++) {
+          const dx = src[i][0] - src[i - 1][0];
+          const dy = src[i][1] - src[i - 1][1];
+          total += Math.hypot(dx, dy);
+          acc[i] = total;
+        }
+        const invTotal = total > 0 ? 1 / total : 0;
+
+        const speed = peri?.speed ?? 1; // cycles per second
+        const a = amp0 * (0.5 + 0.5 * breath.breath01); // modulate by inhale
+        const out: [number, number][] = new Array(src.length) as any;
+
+        for (let i = 0; i < src.length; i++) {
+          const prev = src[Math.max(0, i - 1)];
+          const next = src[Math.min(src.length - 1, i + 1)];
+          const dx = next[0] - prev[0],
+            dy = next[1] - prev[1];
+          const len = Math.hypot(dx, dy) || 1;
+          const nx = -dy / len,
+            ny = dx / len; // unit normal
+          const u = acc[i] * invTotal; // 0..1 along the path
+          const phase = TAU * (speed * tWave + u);
+          const off = a * Math.sin(phase);
+          out[i] = [src[i][0] + nx * off, src[i][1] + ny * off];
+        }
+        return out;
+      }
+
+      const wavedPts = withPeristalsis(pts);
 
       // traveler easing progress
       if (moveT < 1) {
@@ -156,15 +201,14 @@ export function createSpiralSceneSystem(
       // interpolate along the local segment of the base path
       const ax = denseBase[i0][0],
         ay = denseBase[i0][1];
-        
+
       const bx = denseBase[i0 + 1][0],
         by = denseBase[i0 + 1][1];
-        
+
       let tx = ax + (bx - ax) * tLocal;
       let ty = ay + (by - ay) * tLocal;
 
       const angle = Math.atan2(by - ay, bx - ax);
-
 
       // subtle “lean” using the segment normal, scaled by breath velocity
       const dx = bx - ax,
@@ -177,15 +221,22 @@ export function createSpiralSceneSystem(
       ty += ny * lean;
 
       // cache for render (travelerPos is in base/normalized units; painter scales via spiralScale)
-     cache = { pts, spiralScale, ribbonWidth, travelerPos: [tx, ty], travelerAngle: angle };
+      cache = {
+        pts: wavedPts,
+        spiralScale,
+        ribbonWidth,
+        travelerPos: [tx, ty],
+        travelerAngle: angle,
+      };
     },
 
     render(ctx) {
       if (!cache) return;
-      const { pts, spiralScale, ribbonWidth, travelerPos, travelerAngle } = cache;
+      const { pts, spiralScale, ribbonWidth, travelerPos, travelerAngle } =
+        cache;
 
       // ribbon
-      painter.drawSpiralPolyline(pts, ribbonWidth);
+     painter.drawSpiralPolyline(pts, ribbonWidth, ctx.breath.breath01);
 
       // knots
       for (let i = 0; i < knots.length; i++) {
@@ -193,7 +244,12 @@ export function createSpiralSceneSystem(
       }
 
       // traveler
-      painter.drawTraveler(travelerPos, spiralScale, ctx.breath.breath01, travelerAngle);
+      painter.drawTraveler(
+        travelerPos,
+        spiralScale,
+        ctx.breath.breath01,
+        travelerAngle
+      );
     },
   };
 }
