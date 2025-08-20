@@ -1,87 +1,38 @@
-// orchestrates breath ↔ spiral ↔ witness/
+import type { ChamberSystem, ChamberCtx } from "@engine/ChamberSystem"
+import type { BreathState } from "@systems/breath/BreathRuntime"
+import type { SpiralConfig, RingClockConfig, TravelerConfig } from "./spiral/types";
 
-import type { BreathState } from "@systems/breath/BreathRuntime";
-import { OverlayCanvas } from "./spiral/OverlayCanvas";
-import { genKnots, applyBreathToRadius } from "./spiral/SpiralGenerator";
-import {
-  spiralCfg,
-  ringClock,
-  travelerCfg,
-  witnessCfg,
-  visuals,
-} from "@chambers/presets/solarPresets";
-import type { Knot } from "./spiral/types";
-import { genSpiralPolylinePoints } from "./spiral/SpiralGenerator";
+import { createGateAuraSystem } from "./systems/GateAuraSystem";
+import { createSpiralSceneSystem } from "./systems/SpiralSceneSystem";
+import { SceneCanvas } from "./spiral/SceneCanvas";
 
 export class SolarSpiralGateChamber {
-  private overlay: OverlayCanvas;
-  private knots: Knot[] = [];
-  private travelerIdx = 0;
-  private ringPrev = 0;
-  private spiralScale = 1;
-  private ribbonWidth = 1;
-  private knotGlow: number[] = [];
+  private systems: ChamberSystem[];
 
-  constructor(private overlayCanvas: HTMLCanvasElement) {
-    this.overlay = new OverlayCanvas(overlayCanvas);
-    this.knots = genKnots(spiralCfg);
-    this.knotGlow = this.knots.map(() => 0);
+  constructor(
+    private g: CanvasRenderingContext2D,
+    private getBreath: () => BreathState,
+    private getCycle: () => number,
+    private getGate: () => { cx: number; cy: number; r: number },
+    painter: SceneCanvas,
+    spiralCfg: SpiralConfig,
+    ringCfg: RingClockConfig,
+    travelerCfg: TravelerConfig
+  ) {
+this.systems = [
+  createGateAuraSystem(), 
+  createSpiralSceneSystem(painter, spiralCfg, ringCfg, travelerCfg),
+].sort((a,b)=>a.z-b.z);
   }
 
-  update(dt: number, breath: BreathState) {
-    // 1) morph spiral
-    this.spiralScale = 1 + spiralCfg.breathe.scaleEpsilon * breath.breathSS;
-    this.ribbonWidth = 1 + spiralCfg.breathe.widthGain * breath.breath01;
+  update(dt: number) {
+    const breath = this.getBreath();
+    const tCycle = this.getCycle();
+    const { cx, cy, r } = this.getGate();
+    const ctx: ChamberCtx = { g: this.g, cx, cy, rGate: r, tCycle, breath };
 
-    // 2) ring radius (same units)
-    const ringR = ringClock.rBase + ringClock.rGain * breath.breath01;
-
-    // 3) gating (rising edge)
-    for (let i = this.travelerIdx; i < this.knots.length; i++) {
-      const rK = applyBreathToRadius(
-        this.knots[i].r,
-        breath.breathSS,
-        spiralCfg.breathe.scaleEpsilon
-      );
-      if (this.ringPrev < rK && ringR >= rK) {
-        this.onGate(i);
-        break;
-      }
-    }
-    this.ringPrev = ringR;
-
-    // 4) decay glows
-    for (let i = 0; i < this.knotGlow.length; i++)
-      this.knotGlow[i] = Math.max(0, this.knotGlow[i] - dt * 2.2);
-
-    // 5) draw overlay
-    this.overlay.clear();
-
-    // dense points for smooth ribbon (uses current breathSS scale)
-    const pts = genSpiralPolylinePoints(
-      spiralCfg,
-      160, // stepsPerTurn (tweak live)
-      breath.breathSS,
-      spiralCfg.breathe.scaleEpsilon
-    );
-
-    // width grows with inhale (your ribbonWidth already includes breath01)
-    this.overlay.drawSpiralPolyline(pts, this.ribbonWidth);
-
-    // knots (pearls)
-    for (let i = 0; i < this.knots.length; i++) {
-      this.overlay.drawKnot(this.knots[i], this.spiralScale, this.knotGlow[i]);
-    }
-
-    // traveler
-    const pos = this.knots[this.travelerIdx].pos;
-    this.overlay.drawTraveler(pos, this.spiralScale, breath.breath01);
-  }
-
-  private onGate(i: number) {
-    this.travelerIdx = Math.min(i + 1, this.knots.length - 1);
-    this.knotGlow[i] = 1.0;
-    // TODO: tween traveler to next knot (for now, snap)
-    // TODO: audio tick / witness pop
+    for (const s of this.systems) s.tick(dt, ctx);
+    // clear scene once per frame (in CSS px; main.ts already does this)
+    for (const s of this.systems) s.render(ctx);
   }
 }

@@ -1,20 +1,29 @@
 // px <-> normalized (minDim) helpers
 
-export interface Viewport { w: number; h: number; min: number; }
+export type Viewport = {
+  w: number; h: number;
+  cx: number; cy: number;
+  min: number; max: number;
+};
 
+/** Use CSS pixel sizes so it matches a DPR-scaled 2D context. */
 export function getViewport(canvas: HTMLCanvasElement): Viewport {
-  const w = canvas.width, h = canvas.height, min = Math.min(w, h);
-  return { w, h, min };
+  const w = canvas.clientWidth | 0;
+  const h = canvas.clientHeight | 0;
+  const cx = w * 0.5;
+  const cy = h * 0.5;
+  const min = Math.min(w, h);
+  const max = Math.max(w, h);
+  return { w, h, cx, cy, min, max };
 }
+
+/** Map normalized min-dim space → CSS px (origin at center). */
+export function normToPx(nx: number, ny: number, vp: Viewport): [number, number] {
+  return [vp.cx + nx * vp.min, vp.cy + ny * vp.min];
+}
+
 
 // normalized (origin center, 1 unit == minDim)
 export function polarToNorm(r:number, theta:number): [number, number] {
   return [r * Math.cos(theta), r * Math.sin(theta)];
-}
-
-// normalized -> pixels (canvas coords)
-export function normToPx(x:number, y:number, vp:Viewport): [number, number] {
-  const cx = vp.w * 0.5 + x * vp.min;
-  const cy = vp.h * 0.5 - y * vp.min;
-  return [cx, cy];
 }

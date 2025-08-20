@@ -18,7 +18,7 @@
       "@config/*": ["config/*"],
       "@modulation/*": ["modulation/*"],
       "@types/*": ["types/*"],
-      "@renderers/*": ["renderer/*"],
+      "@renderers/*": ["renderers/*"],
       "@chambers/*": ["chambers/*"]
 
     }

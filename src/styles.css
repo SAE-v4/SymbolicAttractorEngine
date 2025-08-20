@@ -5,7 +5,7 @@ html, body, #engine-root { height: 100%; margin: 0; user-select: none; -webkit-u
 
 
 #engine-root {
-  position: fixed;
+  position: relative;
   inset: 0;
 }
 
