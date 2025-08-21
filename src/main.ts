@@ -6,6 +6,9 @@ import { SkyGLRenderer } from "@renderers/skygl/skyGLRenderer";
 import { SolarSpiralGateChamber } from "@chambers/solarSpiralGate/SolarSpiralGateChamber";
 import { SceneCanvas } from "@chambers/solarSpiralGate/spiral/SceneCanvas";
 import { startApp } from "./app/AppShell";
+import '@/app/engine-root';
+
+
 
 import {
   SOLAR_SPIRAL_CFG,
@@ -163,6 +166,6 @@ const legacyInit = function () {
   requestAnimationFrame(frame);
 };
 
-const q = new URLSearchParams(location.search);
-if (q.get('appshell')==='1') { startApp(document.getElementById('engine-root')!); }
-else { legacyInit(); }
+// const q = new URLSearchParams(location.search);
+// if (q.get('appshell')==='1') { startApp(document.getElementById('engine-root')!); }
+// else { legacyInit(); }

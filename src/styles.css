@@ -1,19 +1,10 @@
-html, body, #engine-root { height: 100%; margin: 0; user-select: none; -webkit-user-select: none; touch-action: none;}
+/* new */
+html, body { height: 100%; margin: 0; }
+engine-root { display: block; height: 100%; }
 
-
-:root { --breath01: 0; --breathVel: 0; }
-
-
-#engine-root {
-  position: relative;
-  inset: 0;
+/* optional: safer on mobile browser chrome */
+@supports (height: 100dvh) {
+  engine-root { height: 100dvh; }
 }
 
-#engine-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
 
