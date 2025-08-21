@@ -1,2 +1,3 @@
 import { solarSpiralGate } from './solarSpiralGate';
-export const CHAMBERS = [solarSpiralGate];
+import { lunarTideGate } from '@chambers/lunarTideGate';
+export const CHAMBERS = [solarSpiralGate, lunarTideGate];
