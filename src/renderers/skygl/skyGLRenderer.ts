@@ -35,6 +35,8 @@ uniform float u_haloGainR;
 uniform float u_ringMaxAlpha;
 uniform float u_ringGainR;
 
+uniform float u_scroll;
+
 uniform int u_debugMode;   // 0=off, 1=lens, 2=warp mag, 3=ring isolines, 4=gy diff
 
 float softstep(float edge0, float edge1, float x) {
@@ -104,7 +106,7 @@ float gyWarp = (uvWarp.y * minDim + 0.5 * u_res.y) / u_res.y;
 // --- Light-band thickness breathing (duty-cycle), with drift + reversal ---
 float baseSpeed   = u_bandDriftBase;
 float breathSpeed = u_bandDriftGain * u_breathSS; // reverses on inhale/exhale
-float cycles      = gyWarp * u_bandFreq + (baseSpeed + breathSpeed) * u_time;
+float cycles = gyWarp * u_bandFreq + u_scroll;
 
 // periodic position 0..1 within a band
 float x = fract(cycles);
