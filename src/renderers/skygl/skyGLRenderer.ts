@@ -1,4 +1,5 @@
-//import fragSrc from './shaders/sky.frag'
+// import vertSrc from './shaders/sky.vert?raw';
+// import fragSrc from './shaders/sky.frag?raw';
 
 const fragSrc = `precision mediump float;
 
@@ -34,6 +35,8 @@ uniform float u_haloGainR;
 uniform float u_ringMaxAlpha;
 uniform float u_ringGainR;
 
+uniform int u_debugMode;   // 0=off, 1=lens, 2=warp mag, 3=ring isolines, 4=gy diff
+
 float softstep(float edge0, float edge1, float x) {
   float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
   return t * t * (3.0 - 2.0 * t);
@@ -58,15 +61,23 @@ vec2  n     = d / dist;
 
 
 // Gaussian around the ring radius (narrower than before)
-float sigma = ringR * 0.55;                   // was 0.55
+float sigma = ringR * 0.38;                   // was 0.55
 float lens  = exp(-pow((dist - ringR) / sigma, 2.0));
 
 // make it strong enough to see (you can dial down later)
-float warpBase = 0.006 * u_inhale + 0.003 * abs(u_breathSS) + 0.0015 * abs(u_velocity);
+// strength of lens displacement
+float warpStrength =
+    0.006 * u_inhale
+  + 0.003 * abs(u_breathSS)
+  + 0.0015 * abs(u_velocity);
 
-// anisotropic: bend horizontal bands more => amplify Y component
-vec2 anis = vec2(0.35, 1.0);                  // X weaker, Y stronger
-vec2 uvWarp = uv + (n * anis) * warpBase * lens;
+warpStrength = clamp(warpStrength, 0.0, 0.012);  // safety clamp
+
+// anisotropic lens (bend horizontal bands more)
+vec2 anis = vec2(0.35, 1.0);
+
+vec2 uvWarp = uv + (normalize(d) * anis) * warpStrength * lens;
+
 
 // radial distances (after lens warp)
 float rCenter = length(uvWarp);          // distance from screen center
@@ -127,6 +138,33 @@ vec3 Lcore = u_coreWarm * coreMask * coreGain;
 
   // Combine
 vec3 col = Lsky + Lbands + Lhalo + Lring + Lcore;
+
+// --- Debug overlays ---
+if (u_debugMode == 1) {
+  // lens heatmap
+  float v = clamp(lens, 0.0, 1.0);
+  vec3 tint = mix(vec3(0.0,0.15,0.50), vec3(1.0,0.95,0.25), v);
+  col = mix(col, tint, 0.35);
+} else if (u_debugMode == 2) {
+  // warp magnitude (how far uv moved)
+  float mag = length(uvWarp - uv) * minDim * 120.0;   // amplify for visibility
+  float v = smoothstep(0.0, 1.0, mag);
+  vec3 tint = mix(vec3(0.0,0.2,0.0), vec3(0.0,1.0,0.6), v);
+  col = mix(col, tint, 0.5);
+} else if (u_debugMode == 3) {
+  // ring-centered isolines (distance bands)
+  float k = 32.0;
+  float bands = 0.5 + 0.5 * sin((dist - ringR) * k);
+  vec3 tint = mix(vec3(0.1,0.1,0.1), vec3(0.9,0.9,0.9), bands);
+  col = mix(col, tint, 0.35);
+} else if (u_debugMode == 4) {
+  // gy vs gyWarp difference (what the lens does to the band sampler)
+  float diff = clamp(abs(((uvWarp.y-uv.y)*minDim))*2.0, 0.0, 1.0);
+  vec3 tint = mix(vec3(0.1,0.0,0.0), vec3(1.0,0.3,0.3), diff);
+  col = mix(col, tint, 0.4);
+}
+
+
 gl_FragColor = vec4(col, 1.0);
 }
 `
@@ -372,6 +410,7 @@ render(timeSec: number) {
 
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 
+  gl.uniform1i(this.u_debugMode!, this.debugMode);
   
 
   // 🔍 Debug log
