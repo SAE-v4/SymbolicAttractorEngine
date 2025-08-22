@@ -42,24 +42,31 @@ export class EngineRoot extends HTMLElement {
     this.#mounted = false;
   }
 
-  #mount() {
-    const q = new URLSearchParams(location.search);
-    const pick = this.getAttribute('ch') || q.get('ch') || localStorage.getItem('sae.lastChamber');
-    const chamber: Chamber | undefined =
-      CHAMBERS.find(c => c.manifest.id === pick) ?? CHAMBERS[0];
-    if (!chamber) return;
+#mount() {
+  const q = new URLSearchParams(location.search);
+  // URL first, then attribute, then localStorage, then default
+  const pick =
+    q.get('ch') ||
+    this.getAttribute('ch') ||
+    localStorage.getItem('sae.lastChamber') ||
+    CHAMBERS[0]?.manifest.id;
 
-    localStorage.setItem('sae.lastChamber', chamber.manifest.id);
-    const debug = this.hasAttribute('debug') || q.get('debug') === '1';
+  const chamber =
+    CHAMBERS.find(c => c.manifest.id === pick) ?? CHAMBERS[0];
+  if (!chamber) return;
 
-    const rect = this.getBoundingClientRect();
-    const ret = chamber.mount({
-      root: this.#host,
-      size: { width: rect.width, height: rect.height },
-      debug,
-    });
-    this.#unmount = ret?.unmount ?? null;
-  }
+  localStorage.setItem('sae.lastChamber', chamber.manifest.id);
+  const debug = this.hasAttribute('debug') || q.get('debug') === '1';
+
+  const rect = this.getBoundingClientRect();
+  const ret = chamber.mount({
+    root: this.#host,
+    size: { width: rect.width, height: rect.height },
+    debug,
+  });
+  this.#unmount = ret?.unmount ?? null;
+}
+
 
   #remount() {
     this.#unmount?.(); this.#unmount = null;

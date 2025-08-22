@@ -15,6 +15,7 @@ const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
+let tWave = 0;
 
 type Cache = {
   pts: [number, number][];
@@ -156,15 +157,14 @@ export function createSpiralSceneSystem(
       // interpolate along the local segment of the base path
       const ax = denseBase[i0][0],
         ay = denseBase[i0][1];
-        
+
       const bx = denseBase[i0 + 1][0],
         by = denseBase[i0 + 1][1];
-        
+
       let tx = ax + (bx - ax) * tLocal;
       let ty = ay + (by - ay) * tLocal;
 
       const angle = Math.atan2(by - ay, bx - ax);
-
 
       // subtle “lean” using the segment normal, scaled by breath velocity
       const dx = bx - ax,
@@ -176,24 +176,45 @@ export function createSpiralSceneSystem(
       tx += nx * lean;
       ty += ny * lean;
 
-      // cache for render (travelerPos is in base/normalized units; painter scales via spiralScale)
-     cache = { pts, spiralScale, ribbonWidth, travelerPos: [tx, ty], travelerAngle: angle };
+      tWave += dt;
+
+      // cache for render (add tWave)
+      (this as any)._cache = {
+        pts,
+        spiralScale,
+        ribbonWidth,
+        travelerPos: [tx, ty] as [number, number],
+        tWave,
+      };
     },
 
     render(ctx) {
-      if (!cache) return;
-      const { pts, spiralScale, ribbonWidth, travelerPos, travelerAngle } = cache;
+  
+      const { breath } = ctx;
+      const { pts, spiralScale, ribbonWidth, travelerPos, tWave } = (
+        this as any
+      )._cache!;
 
-      // ribbon
-      painter.drawSpiralPolyline(pts, ribbonWidth);
+// Peristaltic ribbon
+painter.drawRibbonPeristaltic(pts, ribbonWidth, {
+  time: tWave,
+  breath01: breath.breath01,
+  breathSS: breath.breathSS,
+  amp: 0.12,        // visual subtlety; try 0.08–0.14
+  lambda: 0.25,     // one wave every 1/4 of the path
+  freq: 0.2,       // 0.2–0.35 Hz reads well
+  widthGain: 0.08,  // how much width changes
+  alphaGain: 0.10,  // how much glow changes
+  segmentStride: 2, // set 2 on mobile if needed
+});
 
-      // knots
+      // Knots
       for (let i = 0; i < knots.length; i++) {
         painter.drawKnot(knots[i], spiralScale, knotGlow[i]);
       }
 
-      // traveler
-      painter.drawTraveler(travelerPos, spiralScale, ctx.breath.breath01, travelerAngle);
+      // Traveler
+      painter.drawTraveler(travelerPos, spiralScale, breath.breath01);
     },
   };
 }

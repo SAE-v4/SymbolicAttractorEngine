@@ -2,43 +2,28 @@
 import type { ChamberMountOpts } from "@types/Chamber";
 import { BreathRuntime, type BreathConfig } from "@systems/breath/BreathRuntime";
 import { SkyGLRenderer } from "@renderers/skygl/skyGLRenderer";
+// SceneCanvas/painter kept if you still use it elsewhere; otherwise can be removed.
 import { SceneCanvas } from "@chambers/solarSpiralGate/spiral/SceneCanvas";
 import { SolarSpiralGateChamber } from "./SolarSpiralGateChamber";
-import {
-  SOLAR_SPIRAL_CFG,
-  SOLAR_RING_CLOCK,
-  SOLAR_TRAVELER_CFG,
-} from "@chambers/presets/solarPresets";
 
 export function mountSolarSpiralGate(opts: ChamberMountOpts) {
   const root = opts.root;
 
-
-
   const glCanvas = document.createElement("canvas");
   Object.assign(glCanvas.style, {
-    position: "absolute",
-    inset: "0",
-    width: "100%",
-    height: "100%",
-    display: "block",
-    zIndex: "0",
+    position: "absolute", inset: "0", width: "100%", height: "100%",
+    display: "block", zIndex: "0",
   });
   root.appendChild(glCanvas);
 
   const sceneCanvas = document.createElement("canvas");
   Object.assign(sceneCanvas.style, {
-    position: "absolute",
-    inset: "0",
-    width: "100%",
-    height: "100%",
-    display: "block",
-    zIndex: "10",          // above GL, below any HUD
-    pointerEvents: "none",
+    position: "absolute", inset: "0", width: "100%", height: "100%",
+    display: "block", zIndex: "10", pointerEvents: "none",
   });
   root.appendChild(sceneCanvas);
 
-  // --- DPR-safe sizing helpers ---
+  // --- DPR-safe sizing ---
   function sizeCanvas(c: HTMLCanvasElement) {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const rect = c.getBoundingClientRect();
@@ -48,13 +33,12 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
     if (c.height !== h) c.height = h;
     return dpr;
   }
-
   function attach2D(c: HTMLCanvasElement) {
     const g = c.getContext("2d", { alpha: true, colorSpace: "srgb" })!;
     const rescale = () => {
       const dpr = sizeCanvas(c);
       g.setTransform(1, 0, 0, 1, 0, 0);
-      g.scale(dpr, dpr); // draw in CSS px
+      g.scale(dpr, dpr);
     };
     rescale();
     return { g, rescale };
@@ -66,7 +50,7 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
 
   // --- Scene 2D ---
   const { g: sceneCtx, rescale: rescaleScene } = attach2D(sceneCanvas);
-  const painter = new SceneCanvas(sceneCanvas, sceneCtx);
+  const painter = new SceneCanvas(sceneCanvas, sceneCtx); // ok to keep even if not used
 
   // --- Breath runtime ---
   const breathCfg: BreathConfig = {
@@ -80,28 +64,24 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
   };
   const breath = new BreathRuntime(breathCfg);
 
-  // --- Gate geometry (CSS px; ctx is scaled to CSS px) ---
+  // --- Gate geometry (CSS px)
   const gate = { cx: 0, cy: 0, r: 0 };
   function computeGate() {
     const rect = sceneCanvas.getBoundingClientRect();
     const w = rect.width, h = rect.height;
     gate.cx = w * 0.5;
-    gate.cy = h * 0.52;         // slight lift
+    gate.cy = h * 0.52;
     gate.r  = Math.min(w, h) * 0.18;
   }
   computeGate();
 
-  // --- Chamber (providers close over breath + gate) ---
-  const chamber = new SolarSpiralGateChamber(
-    sceneCtx,
-    () => breath.state,
-    () => breath.state.tCycle,
-    () => ({ cx: gate.cx, cy: gate.cy, r: gate.r }),
-    painter,
-    SOLAR_SPIRAL_CFG,
-    SOLAR_RING_CLOCK,
-    SOLAR_TRAVELER_CFG
-  );
+  // --- Chamber (now exposes update(dt)) ---
+const chamber = new SolarSpiralGateChamber(
+  sceneCtx,
+  () => ({ cx: gate.cx, cy: gate.cy, r: gate.r }),
+  undefined,
+  { breathPhase: () => breath.state.tCycle, breath01: () => breath.state.breath01 }
+);
 
   // --- Resize & DPR watchers ---
   function handleResize() {
@@ -129,14 +109,15 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
     sky.setBreath({
       breath01: breath.state.breath01,
       breathSS: breath.state.breathSS,
-      velocity:  breath.state.velocity,
+      velocity: breath.state.velocity,
     });
     sky.render(t / 1000);
 
-    // clear 2D scene (CSS px coords because ctx is scaled)
+    // clear 2D (ctx is already scaled to CSS px)
     sceneCtx.clearRect(0, 0, sceneCanvas.clientWidth, sceneCanvas.clientHeight);
 
-    chamber.update(dt); // draws via painter/sceneCtx
+    // draw chamber (additive on transparent over SkyGL)
+    chamber.update(dt);
   }
   handleResize();
   raf = requestAnimationFrame(frame);
@@ -145,7 +126,6 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
   function unmount() {
     cancelAnimationFrame(raf);
     window.removeEventListener("resize", handleResize);
-    // remove canvases we created
     try { root.removeChild(sceneCanvas); } catch {}
     try { root.removeChild(glCanvas); } catch {}
   }
