@@ -2,8 +2,11 @@
 import type { ChamberDef } from "@/types/ChamberDefs";
 import { drawGateRings } from "@/renderers/gateRings";
 import { drawSpiralRiver } from "@/renderers/spiralRenderer";
-import { WitnessVisual } from "@/systems/witnessVisual";
+import { drawSpiralRibbon } from "@/renderers/spiralRibbon";
 
+import { WitnessVisual } from "@/systems/witnessVisual";
+import { GateFlash } from "@/systems/gate";
+import { drawSolarCoreGlow } from "@/renderers/solarCoreGlow";
 
 export type GateGeom = { cx:number; cy:number; r:number };
 export type BreathClock = { breathPhase: () => number; breath01?: () => number };
@@ -36,11 +39,13 @@ export class SolarSpiralGateChamber {
   private g: CanvasRenderingContext2D;
   private def: ChamberDef;
   private witness: WitnessVisual;
+  private gateFlash: GateFlash;
 
 private clock?: BreathClock;
 private phase = 0;
 private prevPhase = 0;
 private bpm = 30;
+private coreBeatBoost = 0; // 0..1
 
   constructor(
     g: CanvasRenderingContext2D,
@@ -52,6 +57,7 @@ private bpm = 30;
     this.def = def ?? DEFAULT_SOLAR_SPIRAL_DEF;
     this.clock = clock; 
     this.witness = new WitnessVisual(this.def);
+    this.gateFlash = new GateFlash(this.def);
   }
 
   private tick(dt:number){
@@ -63,8 +69,15 @@ private bpm = 30;
     const w = this.def.systems?.breath?.beatWidth ?? 0.08;
     if (this.prevPhase > (1 - w) && this.phase < w) {
       this.witness.onBeat();
+      this.gateFlash.onBeat();
+      this.coreBeatBoost = Math.min(1, this.coreBeatBoost + 0.7); // pop the core
+      
+
     }
     this.witness.tick(dt);
+    this.gateFlash.tick(dt);
+    this.coreBeatBoost = Math.max(0, this.coreBeatBoost - 2.5*dt);
+
   }
 
   private render(){
@@ -85,15 +98,20 @@ private bpm = 30;
     g.restore();
 
     // Rings + core
-    drawGateRings(g, this.def, cx, cy, r, this.phase, false);
+drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
+drawSolarCoreGlow(g, this.def, cx, cy, r, this.inhale01(), this.coreBeatBoost);
+this.gateFlash.draw(g, cx, cy, r);
 
-    // Spiral river (origin just below horizon)
-    drawSpiralRiver(
-  g, this.def,
-  cx, cy + r*1.05, r*0.75,
-  this.phase,
-  this.inhale01()   // 0..1 (from BreathRuntime or derived from phase)
-);
+
+//     // Spiral river (origin just below horizon)
+//     drawSpiralRiver(
+//   g, this.def,
+//   cx, cy + r*1.05, r*0.75,
+//   this.phase,
+//   this.inhale01()   // 0..1 (from BreathRuntime or derived from phase)
+// );
+drawSpiralRibbon(g, this.def, cx, cy + r*1.05, r*0.75, this.phase, this.inhale01());
+
 
     // Witness seed below spiral
     this.witness.draw(g, cx, cy + r*1.95, this.phase);

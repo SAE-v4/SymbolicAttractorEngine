@@ -15,6 +15,12 @@ uniform vec3 u_bandColor;
 uniform vec3 u_haloColor;
 uniform vec3 u_ringColor;
 
+uniform vec2  u_ringCenterPx;  // ring center in PIXELS (GL canvas space)
+uniform float u_ringRadiusPx;  // ring radius in PIXELS
+uniform float u_inhale;        // 0..1 (same as breath01 is fine)
+uniform float u_beat;          // 0..1 short decay on beat
+uniform vec3  u_coreWarm;      // e.g. vec3(1.0, 0.96, 0.86)
+
 // params
 uniform float u_bandAlphaBase;
 uniform float u_bandAlphaGain;
@@ -34,48 +40,74 @@ float softstep(float edge0, float edge1, float x) {
 }
 
 void main() {
-  // --- aspect-ratio corrected UV ---
-  vec2 centered = gl_FragCoord.xy - 0.5 * u_res; 
-  float minDim = min(u_res.x, u_res.y);
-  vec2 uv = centered / minDim; 
-  float r = length(uv);
-  float gy = gl_FragCoord.y / u_res.y;
+// --- aspect-corrected UV (origin at center, units = pixels of minDim) ---
+vec2 fc = gl_FragCoord.xy;
+vec2 centered = fc - 0.5 * u_res;
+float minDim = min(u_res.x, u_res.y);
+vec2 uv = centered / minDim;  
+
+// ring center/radius in the same uv space
+vec2 ringUV = (u_ringCenterPx - 0.5 * u_res) / minDim;
+float ringR  = u_ringRadiusPx / minDim;
+
+// --- tiny radial lens warp around the ring ---
+// distance from ring center in uv units (minDim pixels)
+vec2  d     = uv - ringUV;
+float dist  = length(d) + 1e-6;
+vec2  n     = d / dist;
+
+
+// Gaussian around the ring radius (narrower than before)
+float sigma = ringR * 0.55;                   // was 0.55
+float lens  = exp(-pow((dist - ringR) / sigma, 2.0));
+
+// make it strong enough to see (you can dial down later)
+float warpBase = 0.006 * u_inhale + 0.003 * abs(u_breathSS) + 0.0015 * abs(u_velocity);
+
+// anisotropic: bend horizontal bands more => amplify Y component
+vec2 anis = vec2(0.35, 1.0);                  // X weaker, Y stronger
+vec2 uvWarp = uv + (n * anis) * warpBase * lens;
+
+// radial distances (after lens warp)
+float rCenter = length(uvWarp);          // distance from screen center
+float rRing   = length(uvWarp - ringUV); // distance from ring center (optional)
+
+
+// Convert warped uv back to a [0..1] vertical coord for bands
+float gyWarp = (uvWarp.y * minDim + 0.5 * u_res.y) / u_res.y;
 
   // Sky gradient
-  vec3 Lsky = mix(u_skyBot, u_skyTop, gy);
+  vec3 Lsky = mix(u_skyBot, u_skyTop, gyWarp);
 
-// --- Light-band thickness breathing (duty-cycle), with drift + reversal
-
-// cycles that move with time (base drift) and reverse on inhale/exhale
-float baseSpeed    = u_bandDriftBase;             // e.g. 0.10
-float breathSpeed  = u_bandDriftGain * u_breathSS; // reverses direction
-float cycles       = gy * u_bandFreq + (baseSpeed + breathSpeed) * u_time;
+// --- Light-band thickness breathing (duty-cycle), with drift + reversal ---
+float baseSpeed   = u_bandDriftBase;
+float breathSpeed = u_bandDriftGain * u_breathSS; // reverses on inhale/exhale
+float cycles      = gyWarp * u_bandFreq + (baseSpeed + breathSpeed) * u_time;
 
 // periodic position 0..1 within a band
-float x  = fract(breathSpeed);
+float x = fract(cycles);
 
 // how much of each period is the LIGHT band (0..1)
-// breath01 near 0  -> thin light band / thick dark band
-// breath01 near 1  -> thick light band / thin dark band
-float duty = mix(0.35, 0.15, u_breath01);   // tweak range to taste
+float duty = mix(0.35, 0.15, u_breath01);
 
-// anti-aliased edge width (so changing thickness stays smooth)
-//float aa   = max(fwidth(x), 0.001);         // needs mediump precision, OK on mobile
-float aa = 0.100;   // adjust to taste, larger = softer band edges
-// rectangular window: 1 inside [0..duty], 0 outside, with soft edges
+// anti-aliased edge width (keep your soft constant—mobile friendly)
+float aa = 0.100;
 float lightRect = smoothstep(0.0, aa, x) * (1.0 - smoothstep(duty, duty + aa, x));
 
-// optional softening so it isn't perfectly rectangular (looks nicer)
-float soften = 0.65;                         // 0 = hard bars, 1 = sine-like
+// optional softening
+float soften = 0.65;
 float bandsField = mix(lightRect, 0.5 + 0.5 * sin(cycles * 6.2831853), soften);
 
-// opacity breath (how visible bands are overall)
+// overall band opacity (breath)
 float Abands = clamp(u_bandAlphaBase + u_bandAlphaGain * u_breath01, 0.0, 0.8);
+
 
 // final contribution
 vec3 Lbands = u_bandColor * Abands * bandsField;
+float bandGlow = 0.10 * lens;
+Lbands += u_bandColor * bandGlow * (0.4 + 0.6*u_inhale);
 
-
+float r = rCenter;
 
   // Radial halo
   float halo = exp(-r * 3.0) * (u_haloIntensityB + u_haloIntensityG * u_breath01);
@@ -88,9 +120,14 @@ vec3 Lbands = u_bandColor * Abands * bandsField;
   ring += u_ringGainR * max(u_velocity, 0.0);
   vec3 Lring = u_ringColor * ring * ringAlpha;
 
+  // Warm core carry (subtle GL contribution that blends with 2D core)
+float coreMask = exp(-pow(dist / (ringR * 0.65), 2.0));
+float coreGain = 0.10 + 0.20 * u_inhale + 0.35 * u_beat; // tunable
+vec3 Lcore = u_coreWarm * coreMask * coreGain;
+
   // Combine
-  vec3 col = Lsky + Lbands + Lhalo + Lring;
-  gl_FragColor = vec4(col, 1.0);
+vec3 col = Lsky + Lbands + Lhalo + Lring + Lcore;
+gl_FragColor = vec4(col, 1.0);
 }
 `
 
@@ -141,6 +178,13 @@ export class SkyGLRenderer {
   private u_debugMode: WebGLUniformLocation | null;
   private debugMode = 0;
   
+    // NEW uniform locations
+  private u_ringCenterPx: WebGLUniformLocation|null;
+  private u_ringRadiusPx: WebGLUniformLocation|null;
+  private u_inhaleU: WebGLUniformLocation|null;
+  private u_beatU: WebGLUniformLocation|null;
+  private u_coreWarm: WebGLUniformLocation|null;
+
 
   // State
   private breath01 = 0;
@@ -153,6 +197,12 @@ export class SkyGLRenderer {
     halo:    [0xA9/255,0xC5/255,0xFF/255],
     ring:    [0xC8/255,0xDA/255,0xFF/255],
   };
+
+  // NEW state
+  private gateCSS = { cx: 0, cy: 0, r: 0 };           // gate in CSS px
+  private coreWarm = [1.0, 0.96, 0.86] as [number,number,number];
+  private beat = 0;                                    // 0..1
+  private tPrev = 0;                                   // sec
 
   private params = {
     bandFreq: 6.0,
@@ -236,6 +286,12 @@ gl.clearColor(0, 0, 0, 1);
     this.u_ringGainR = U('u_ringGainR');
     this.u_ringMaxAlpha = U('u_ringMaxAlpha');
 
+    this.u_ringCenterPx = U('u_ringCenterPx');
+    this.u_ringRadiusPx = U('u_ringRadiusPx');
+    this.u_inhaleU      = U('u_inhale');
+    this.u_beatU        = U('u_beat');
+    this.u_coreWarm     = U('u_coreWarm');
+
     this.applyColors();
     this.applyParams();
     this.resize();
@@ -266,21 +322,57 @@ gl.clearColor(0, 0, 0, 1);
     this.applyParams();
   }
 
+    // Call this from your mount after computeGate()
+  setGate(g: { cx:number; cy:number; r:number }) {
+    this.gateCSS = g;
+  }
+
+  setCoreWarm(rgb: [number,number,number]) {
+    this.coreWarm = rgb;
+  }
+
+  // Optional: call on beat to pop the GL core a touch
+  pulseBeat(strength = 1) {
+    this.beat = Math.min(1, this.beat + strength);
+  }
+
 render(timeSec: number) {
   
   const gl = this.gl;
+
+  const dt = this.tPrev ? (timeSec - this.tPrev) : 0;
+  this.tPrev = timeSec;
+  this.beat = Math.max(0, this.beat - 2.5 * dt);
+
   gl.clear(gl.COLOR_BUFFER_BIT);
-  const w = gl.canvas.width;
+ const w = gl.canvas.width;
   const h = gl.canvas.height;
 
   gl.viewport(0, 0, w, h);
   gl.useProgram(this.prog);
 
+  // existing
   gl.uniform2f(this.u_res, w, h);
   gl.uniform1f(this.u_time, timeSec);
   gl.uniform1f(this.u_b01, this.breath01);
   gl.uniform1f(this.u_bSS, this.breathSS);
   gl.uniform1f(this.u_vel, this.velocity);
+
+  // NEW — ring uniforms
+  const dpr = this.canvas.clientWidth ? (this.canvas.width / this.canvas.clientWidth) : 1;
+  const cxPx = this.gateCSS.cx * dpr;
+  const cyPx = this.gateCSS.cy * dpr;
+  const rPx  = this.gateCSS.r  * dpr;
+
+  gl.uniform2f(this.u_ringCenterPx!, cxPx, cyPx);
+  gl.uniform1f(this.u_ringRadiusPx!, rPx);
+  gl.uniform1f(this.u_inhaleU!, this.breath01); // or another inhale value
+  gl.uniform1f(this.u_beatU!, this.beat);
+  gl.uniform3f(this.u_coreWarm!, this.coreWarm[0], this.coreWarm[1], this.coreWarm[2]);
+
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  
 
   // 🔍 Debug log
   // console.log("u_res", w, h,

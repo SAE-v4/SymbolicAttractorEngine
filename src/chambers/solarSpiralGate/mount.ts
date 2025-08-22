@@ -75,6 +75,8 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
   }
   computeGate();
 
+  sky.setGate({ cx: gate.cx, cy: gate.cy, r: gate.r });
+
   // --- Chamber (now exposes update(dt)) ---
 const chamber = new SolarSpiralGateChamber(
   sceneCtx,

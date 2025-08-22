@@ -33,9 +33,9 @@ export function drawSpiralRiver(
 
   // --- NEW: global width pulse + gentle radial wobble
   const breath = Math.max(0, Math.min(1, inhale));
-  const pulse  = 0.90 + 0.45 * breath;             // width swell with breath
+  const pulse  = 0.90 + 0.35 * breath;             // width swell with breath
   const baseW  = s.baseWidth * pulse;              // (replaces old wBase)
-  const wobAmp = r0 * 0.02 * breath;              // 1.5% radius wobble at full inhale
+  const wobAmp = r0 * 0.015 * breath;              // 1.5% radius wobble at full inhale
   const wobK   = 0.6;                               // wobble spatial freq (radians)
 
   const peri = (t:number) => {
