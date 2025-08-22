@@ -61,7 +61,7 @@ vec2  n     = d / dist;
 
 
 // Gaussian around the ring radius (narrower than before)
-float sigma = ringR * 0.38;                   // was 0.55
+float sigma = ringR * 0.46;                   // was 0.55
 float lens  = exp(-pow((dist - ringR) / sigma, 2.0));
 
 // make it strong enough to see (you can dial down later)
@@ -76,7 +76,18 @@ warpStrength = clamp(warpStrength, 0.0, 0.012);  // safety clamp
 // anisotropic lens (bend horizontal bands more)
 vec2 anis = vec2(0.35, 1.0);
 
-vec2 uvWarp = uv + (normalize(d) * anis) * warpStrength * lens;
+// tangential unit (perpendicular to n)
+vec2 t = vec2(-n.y, n.x);
+
+// how much to curl around the ring (start at ~60% of radial strength)
+float curl = 0.6 * warpStrength;
+// optional: give inhale/exhale opposite swirl — uncomment to try
+// curl *= sign(u_breathSS);
+
+// combine: radial magnification + tangential curl
+vec2 uvWarp = uv
+  + (n * anis) * warpStrength * lens   // radial (normal) push
+  +  t          * curl        * lens;  // tangential (curl) push
 
 
 // radial distances (after lens warp)
@@ -163,6 +174,7 @@ if (u_debugMode == 1) {
   vec3 tint = mix(vec3(0.1,0.0,0.0), vec3(1.0,0.3,0.3), diff);
   col = mix(col, tint, 0.4);
 }
+
 
 
 gl_FragColor = vec4(col, 1.0);
