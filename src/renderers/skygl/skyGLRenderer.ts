@@ -80,7 +80,7 @@ vec2 anis = vec2(0.35, 1.0);
 vec2 t = vec2(-n.y, n.x);
 
 // how much to curl around the ring (start at ~60% of radial strength)
-float curl = 0.6 * warpStrength;
+float curl = 0.4 * warpStrength;
 // optional: give inhale/exhale opposite swirl — uncomment to try
 // curl *= sign(u_breathSS);
 
