@@ -4,6 +4,12 @@ import { BreathRuntime, type BreathConfig } from "@systems/breath/BreathRuntime"
 import { SkyGLRenderer } from "@renderers/skygl/skyGLRenderer";
 import { SceneCanvas } from "@chambers/solarSpiralGate/spiral/SceneCanvas";
 import { SolarSpiralGateChamber } from "./SolarSpiralGateChamber";
+import { Presets, installPresetGlobals, applySkyPreset, attachHotSwap } from "@/presets/presets";
+
+// pick preset (optionally via query ?preset=snug_demo)
+const key = new URLSearchParams(location.search).get("preset") || "default_2025_08_24";
+const PRESET = (Presets as any)[key] || Presets.default_2025_08_24;
+
 
 // spiral constants (match DEFAULT_DEF)
 const TURNS = 1.15;
@@ -40,8 +46,10 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
   }
 
   // --- GL + 2D ---
-  sizeCanvas(glCanvas);
-  const sky = new SkyGLRenderer(glCanvas);
+sizeCanvas(glCanvas);
+const sky = new SkyGLRenderer(glCanvas);
+installPresetGlobals(PRESET);
+applySkyPreset(sky, PRESET);
 
   const { g: sceneCtx, rescale: rescaleScene } = attach2D(sceneCanvas);
   const painter = new SceneCanvas(sceneCanvas, sceneCtx); // ok if unused
@@ -82,13 +90,15 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
   window.addEventListener("pointermove", (e) => updateFacingFromClientXY(e.clientX, e.clientY), { passive:true });
 
   // --- Chamber ---
-  const chamber = new SolarSpiralGateChamber(
-    sceneCtx,
-    () => ({ cx: gate.cx, cy: gate.cy, r: gate.r }),
-    undefined,
-    { breathPhase: () => breath.state.tCycle, breath01: () => breath.state.breath01 },
-    () => facingSm                                    // pass SMOOTHED vector
-  );
+// Chamber
+let chamberDef = PRESET.def;
+const chamber = new SolarSpiralGateChamber(
+  sceneCtx,
+  () => ({ cx: gate.cx, cy: gate.cy, r: gate.r }),
+  chamberDef,
+  { breathPhase: () => breath.state.tCycle, breath01: () => breath.state.breath01 },
+  () => facingSm
+);
 
   // --- helpers: normalize + alignment for SkyGL flow ---
   function norm(x:number,y:number){ const m=Math.hypot(x,y)||1; return {x:x/m,y:y/m}; }
@@ -159,4 +169,7 @@ export function mountSolarSpiralGate(opts: ChamberMountOpts) {
     try { root.removeChild(glCanvas); } catch {}
   }
   return { unmount };
+
+  attachHotSwap(sky, (d) => { chamberDef = d; /* construct a new PAL in chamber by recreating it if needed */ });
+
 }
