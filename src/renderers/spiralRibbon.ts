@@ -9,7 +9,8 @@ export function drawSpiralRibbon(
   r0: number,
   phase: number,
   inhale: number,
-  facing?: { x:number; y:number }
+  facing?: { x:number; y:number },
+  cue?: { moveMag:number; align:number }
 ){
   const pal = PAL(def);
   const s   = def.spiral!;
@@ -147,6 +148,29 @@ export function drawSpiralRibbon(
       else        { og.lineTo(hx, hy); }
     }
     og.stroke();
+
+    const iHead = Math.max(2, Math.min(steps-2, Math.floor(0.62 * steps)));
+const H  = P[iHead], Hn = P[iHead+1], Hp = P[iHead-1];
+const tv = { x: Hn.x - Hp.x, y: Hn.y - Hp.y };
+const tm = Math.hypot(tv.x, tv.y) || 1;
+const tx = tv.x / tm, ty = tv.y / tm;
+
+if (cue) {
+  const len = 6 + 34 * cue.moveMag;   // tail length from movement
+  og.save();
+  og.globalCompositeOperation = "lighter";
+  og.strokeStyle = pal.css("spiral", 0.92);
+  og.lineCap = "round";
+  og.lineWidth = 2 + 3 * cue.moveMag;
+  og.shadowColor = pal.css("spiral", 0.9);
+  og.shadowBlur  = 10 * (0.4 + 0.6 * cue.align);
+  og.beginPath();
+  og.moveTo(H.x, H.y);
+  og.lineTo(H.x + tx * len, H.y + ty * len);
+  og.stroke();
+  og.restore();
+}
+
     og.restore();
   }
 

@@ -146,6 +146,12 @@ export class SolarSpiralGateChamber {
   private bpm = 30;
   private coreBeatBoost = 0; // 0..1
 
+private prevFacing = { x: 0, y: -1 };
+private fSm = { x: 0, y: -1 };
+private moveMag = 0;
+
+
+
   private sampleTangent(rGate:number){
   const s = this.def.spiral!;
   const a = rGate * 0.75;                 // same r0 you pass to ribbon
@@ -204,9 +210,22 @@ private render() {
   const g = this.g;
   const { cx, cy, r } = this.getGate();
 
-  const facing = this.getFacing ? this.getFacing() : { x: 0, y: -1 };
-  this.computeAlignment(facing, r);
+  
 
+const facing = this.fSm;
+this.computeAlignment(facing, r);
+
+  // --- HOIST: compute contact angle once
+  const rRibbon = r * 0.75;                    // same r0 you pass to the ribbon
+  const C = findRibbonContact(cx, cy, rRibbon, this.def);
+
+  const offset = (window as any).__occOffset ?? 0.0;
+  const side   = (window as any).__occSide ?? "bottom"; // "bottom" | "top" | "auto"
+
+  let A = C.ang + offset;                       // base angle from ribbon
+  if (side === "bottom" || (side === "auto" && C.y < cy)) A += Math.PI;
+  // wrap to [-π, π] so small adjustments behave nicely
+  A = Math.atan2(Math.sin(A), Math.cos(A));
   // 1) Horizon
   g.save();
   g.globalAlpha = 0.18;
@@ -218,64 +237,125 @@ private render() {
   g.stroke();
   g.restore();
 
-// --- Rings + core (draw first) ---
-drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
-drawSolarCoreGlow(g, this.def, cx, cy, r, this.inhale01(), this.coreBeatBoost);
-this.gateFlash.draw(g, cx, cy, r);
+// 2) Rings + core
+  drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
+  drawSolarCoreGlow(g, this.def, cx, cy, r, this.inhale01(), this.coreBeatBoost);
+  this.gateFlash.draw(g, cx, cy, r);
 
-// --- Occlusion tied to actual ribbon contact ---
-{
-  const r0 = r * 0.75;                         // your ribbon's start radius
-  const C  = findRibbonContact(cx, cy, r0, this.def);
-  const center = C.ang;                        // contact angle
+  // 3) Occlusion (now reuse A here)
+  if ((window as any).__occOn ?? true) {
+    const occRO  = (window as any).__occRO ?? 0.64;
+    const rOcc   = r * occRO + ((window as any).__occBias ?? 0);
+    const inh    = this.inhale01();
+    const span   = (window as any).__occSpan  ?? (Math.PI * (0.78 + 0.04*inh));
+    const thick  = (window as any).__occThick ?? (12 + 6*inh);
 
-  // Match the ring stack radius: starts a little inside the big ring.
-  // You can tweak live: window.__occRO = 0.60..0.68
-  const occRO   = (window as any).__occRO ?? 0.64;
-  const rOcc    = r * occRO;
+    punchAnnulusArcEvenOdd(g, cx, cy, rOcc, thick, A, span);
+    strokeArc(g, cx, cy, rOcc - 2, 8, A, span * 0.86,
+              "rgba(8,16,32,0.28)", "multiply", { color:"rgba(0,0,0,0.35)", blur:12 });
+    strokeArc(g, cx, cy, rOcc, 5, A, span, PAL(this.def).css("ring", 0.38), "lighter");
+  }
 
-  // Span / thickness breathe a touch with inhale
-  const inh     = this.inhale01();
-  const span    = (window as any).__occSpan  ?? (Math.PI * (0.78 + 0.04*inh));
-  const thick   = (window as any).__occThick ?? (12 + 6*inh);
-  const offset  = (window as any).__occOffset ?? 0.0;
+  // 4) Facing cues (use the same A)
+  this.drawFacingCues(g, cx, cy, r, A, facing, this.alignment, this.moveMag ?? 0);
 
-// --- flip to bottom if our sampled contact is on the top half
-let A = C.ang + offset;
-if (C.y < cy) A += Math.PI;               // move to the opposite side (bottom)
-A = Math.atan2(Math.sin(A), Math.cos(A)); // wrap to [-π, π]
-  // 1) Punch a thin annulus wedge to actually hide rings/core under lip
-  punchAnnulusArcEvenOdd(g, cx, cy, rOcc, thick, A, span);
-
-  // 2) Soft under-rim shadow that lines up with ring tones
-  strokeArc(
-    g, cx, cy, rOcc - 2, 8,
-    A, span * 0.86,
-    "rgba(8, 16, 32, 0.28)", "multiply",
-    { color: "rgba(0,0,0,0.35)", blur: 12 }
-  );
-
-  // 3) Contact rim highlight (sits above everything except ribbon shine)
-  strokeArc(
-    g, cx, cy, rOcc, 5,
-    A, span,
-    PAL(this.def).css("ring", 0.32), "lighter"
-  );
-}
-
-// --- Ribbon (now above the occluded rings/core) ---
+  // 5) Ribbon (unchanged)
 drawSpiralRibbon(
   g, this.def,
   cx, cy + r*1.05, r*0.75,
   this.phase, this.inhale01(),
-  facing
+  facing,
+  { moveMag: this.moveMag, align: this.alignment }
 );
 
-
-// 4) witness
-this.witness.draw(g, cx, cy + r*1.95, this.phase);
+  // 6) Witness
+  this.witness.draw(g, cx, cy + r * 1.95, this.phase);
 
 }
+
+private drawFacingCues(
+  g: CanvasRenderingContext2D,
+  cx:number, cy:number, r:number,
+  contactAngle:number, // where the ribbon meets the ring
+  facingVec:{x:number;y:number}, // current input vector
+  alignment:number,              // 0..1
+  moveMag:number                 // 0..1
+){
+  const pal = PAL(this.def);
+  const faceAng = Math.atan2(facingVec.y, facingVec.x);
+
+  // fade cues out as alignment gets high (learned)
+const baseAlpha = 0.75 * (1 - Math.pow(alignment, 0.6)); // less aggressive fade
+if (baseAlpha < 0.05) return;
+
+const tickR = r * 0.965;
+const tickL = Math.max(4, 6 - 2 * alignment);
+const arcW  = Math.max(2, 4 + 5 * (1 - alignment) + 6 * moveMag); // thicker when moving
+const comet = Math.min(26, 8 + 28 * moveMag);
+
+  // small util
+  const p = (a:number, rr:number) => ({ x: cx + rr * Math.cos(a), y: cy + rr * Math.sin(a) });
+
+  g.save();
+
+  // 1) arc showing "gap" between contact and facing (fills as they match)
+  {
+    const d = Math.atan2(Math.sin(faceAng - contactAngle), Math.cos(faceAng - contactAngle));
+    const span = Math.abs(d) * 1.0; // exact gap
+    if (span > 0.015) {
+      g.globalAlpha = baseAlpha * 0.6;
+      g.strokeStyle = "rgba(10,20,40,0.35)";
+      g.globalCompositeOperation = "multiply";
+      g.lineCap = "round";
+      g.lineWidth = arcW;
+      const mid = contactAngle + d * 0.5;
+      g.beginPath();
+      g.arc(cx, cy, tickR, mid - span * 0.5, mid + span * 0.5, d < 0);
+      g.stroke();
+    }
+  }
+
+  // 2) contact tick (where to aim)
+  {
+    g.globalAlpha = baseAlpha * 0.95;
+    g.globalCompositeOperation = "source-over";
+    g.strokeStyle = pal.css("ring", 0.85);
+    g.lineCap = "round";
+    g.lineWidth = 4;
+    const a = contactAngle;
+    const p0 = p(a, tickR - tickL);
+    const p1 = p(a, tickR + tickL);
+    g.beginPath(); g.moveTo(p0.x, p0.y); g.lineTo(p1.x, p1.y); g.stroke();
+  }
+
+  // 3) facing tick + comet tail
+  {
+    g.globalAlpha = baseAlpha;
+    g.strokeStyle = pal.css("spark", 0.95);
+    g.lineCap = "round";
+    g.lineWidth = 4;
+
+    // tick
+    const a = faceAng;
+    const q0 = p(a, tickR - tickL);
+    const q1 = p(a, tickR + tickL);
+    g.beginPath(); g.moveTo(q0.x, q0.y); g.lineTo(q1.x, q1.y); g.stroke();
+
+    // comet tail pointing along ring tangent direction
+    g.globalCompositeOperation = "lighter";
+    g.shadowColor = pal.css("spark", 0.9);
+    g.shadowBlur  = 10;
+// NEW (tangential along the ring)
+const tailIn = p(a, tickR);
+const tvec   = { x: -Math.sin(a), y: Math.cos(a) }; // unit tangent at angle a
+const tailOut = { x: tailIn.x + tvec.x * comet, y: tailIn.y + tvec.y * comet };
+
+    g.beginPath(); g.moveTo(tailIn.x, tailIn.y); g.lineTo(tailOut.x, tailOut.y); g.stroke();
+  }
+
+  g.restore();
+}
+
 
 
   private inhale01(): number {
@@ -286,6 +366,26 @@ this.witness.draw(g, cx, cy + r*1.95, this.phase);
 
   // what mount.ts expects
   update(dt: number) {
+
+const fRaw = this.getFacing ? this.getFacing() : { x: 0, y: -1 };
+
+// facing smoothing (~100ms)
+const kF = 1 - Math.exp(-dt * 10);
+this.fSm.x += kF * (fRaw.x - this.fSm.x);
+this.fSm.y += kF * (fRaw.y - this.fSm.y);
+
+// movement magnitude with gentle decay
+const df = Math.hypot(fRaw.x - this.prevFacing.x, fRaw.y - this.prevFacing.y);
+const speed = df / Math.max(1e-3, dt);          // "how fast the vector is changing"
+const target = Math.min(1, speed * 0.02);       // scale to taste
+const kM = 1 - Math.exp(-dt * 6);               // ~160ms envelope
+this.moveMag += kM * (target - this.moveMag);
+this.prevFacing = fRaw;
+
+if ((window as any).__pulseMove) {
+  const t = performance.now() * 0.001;
+  this.moveMag = Math.pow(Math.max(0, Math.sin(t*4)), 2); // 0..1 pulsing
+}
     this.tick(dt);
     this.render();
   }
