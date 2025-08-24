@@ -9,49 +9,87 @@ import { GateFlash } from "@/systems/gate";
 import { drawSolarCoreGlow } from "@/renderers/solarCoreGlow";
 import { PAL } from "@/config/palette";
 
-
-
 const TWO_PI = Math.PI * 2;
 
-function punchAnnulusArc(
-  g: CanvasRenderingContext2D,
-  cx: number, cy: number,
-  r: number,               // centre radius
-  thick: number,           // radial thickness (px)
-  center: number,          // angle (rad)
-  span: number             // angular span (rad)
+function clamp01(x:number){ return x < 0 ? 0 : x > 1 ? 1 : x; }
+
+function ribbonConstants(r0:number, turns:number){
+  const TWO_PI = Math.PI*2;
+  const a = r0;
+  const b = (r0 * 0.65) / (turns * TWO_PI); // same spacing as ribbon
+  const thetaMax = turns * TWO_PI;         // s.length assumed 1.0
+  return { a, b, thetaMax };
+}
+
+// Approximate the ribbon contact point near the “top” (−π/2)
+// We scan a tiny window of t and pick the point closest to that angle.
+function findRibbonContact(cx:number, cy:number, r0:number, def: ChamberDef){
+  const s = def.spiral!;
+  const { a, b, thetaMax } = ribbonConstants(r0, s.turns);
+  let best = { ang: -Math.PI/2, dist: 1e9, x:cx, y:cy };
+
+  const steps = 80;
+  const tMin = 0.56, tMax = 0.66;          // small window around the lip
+  for (let i=0;i<=steps;i++){
+    const t  = tMin + (tMax - tMin) * (i/steps);
+    const th = t * thetaMax;
+    const r  = a + b * th;
+    const x  = cx + r*Math.cos(th);
+    const y  = cy + r*Math.sin(th);
+
+    const ang = Math.atan2(y - cy, x - cx);
+    const d   = Math.abs(ang - (-Math.PI/2));
+    if (d < best.dist) best = { ang, dist:d, x, y };
+  }
+  return best; // { ang, x, y }
+}
+
+function punchAnnulusArcEvenOdd(
+  g:CanvasRenderingContext2D,
+  cx:number, cy:number,
+  rCenter:number, thick:number,
+  angle:number, span:number
 ){
-  const rO = r + thick * 0.5;
-  const rI = r - thick * 0.5;
+  const half = Math.max(0, thick) * 0.5;
+  const r0 = Math.max(0, rCenter - half);
+  const r1 = Math.max(r0, rCenter + half);
+
+  const a0 = angle - span*0.5;
+  const a1 = angle + span*0.5;
+
   g.save();
   g.globalCompositeOperation = "destination-out";
   g.beginPath();
-  g.arc(cx, cy, rO, center - span/2, center + span/2, false);
-  g.arc(cx, cy, rI, center + span/2, center - span/2, true);
+  // outer slice (ccw)
+  g.arc(cx, cy, r1, a0, a1, false);
+  // inner slice (reverse to make even-odd)
+  g.arc(cx, cy, r0, a1, a0, true);
   g.closePath();
   g.fill();
   g.restore();
 }
 
 function strokeArc(
-  g: CanvasRenderingContext2D,
-  cx:number, cy:number, r:number,
-  lw:number, center:number, span:number,
-  style:string, blend:GlobalCompositeOperation="source-over",
-  shadow?:{color:string;blur:number}
+  g:CanvasRenderingContext2D,
+  cx:number, cy:number, r:number, lw:number,
+  angle:number, span:number,
+  color:string, op:"source-over"|"lighter"|"multiply"="source-over",
+  shadow?: { color:string, blur:number }
 ){
+  const a0 = angle - span*0.5;
+  const a1 = angle + span*0.5;
+
   g.save();
-  g.globalCompositeOperation = blend;
-  g.strokeStyle = style;
+  g.globalCompositeOperation = op;
+  g.strokeStyle = color;
   g.lineCap = "round";
   g.lineWidth = lw;
   if (shadow){ g.shadowColor = shadow.color; g.shadowBlur = shadow.blur; }
   g.beginPath();
-  g.arc(cx, cy, r, center - span/2, center + span/2, false);
+  g.arc(cx, cy, Math.max(0, r), a0, a1, false);
   g.stroke();
   g.restore();
 }
-
 
 export type GateGeom = { cx: number; cy: number; r: number };
 export type BreathClock = {
@@ -162,95 +200,83 @@ private computeAlignment(facing:Vec2, rGate:number){
     this.coreBeatBoost = Math.max(0, this.coreBeatBoost - 2.5 * dt);
   }
 
-  private render() {
-    const g = this.g;
-    const { cx, cy, r } = this.getGate();
+private render() {
+  const g = this.g;
+  const { cx, cy, r } = this.getGate();
 
-  const facing = this.getFacing ? this.getFacing() : {x:0,y:-1};
+  const facing = this.getFacing ? this.getFacing() : { x: 0, y: -1 };
   this.computeAlignment(facing, r);
-    // NOTE: no bg fill here—the SkyGL layer should remain visible beneath.
 
-    // Horizon (soft line slightly below ring center)
-    g.save();
-    g.globalAlpha = 0.18;
-    g.strokeStyle = "rgba(141,177,255,0.6)"; // uses compositing; palette already similar
-    g.lineWidth = 2;
-    g.beginPath();
-    g.moveTo(0, cy + r * 1.05);
-    g.lineTo(g.canvas.width, cy + r * 1.05);
-    g.stroke();
-    g.restore();
+  // 1) Horizon
+  g.save();
+  g.globalAlpha = 0.18;
+  g.strokeStyle = "rgba(141,177,255,0.6)";
+  g.lineWidth = 2;
+  g.beginPath();
+  g.moveTo(0, cy + r * 1.05);
+  g.lineTo(g.canvas.width, cy + r * 1.05);
+  g.stroke();
+  g.restore();
 
- console.log(facing)
-  drawSpiralRibbon(
-    g, this.def,
-    cx, cy + r*1.05, r*0.75,
-    this.phase, this.inhale01(),
-    facing
+// --- Rings + core (draw first) ---
+drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
+drawSolarCoreGlow(g, this.def, cx, cy, r, this.inhale01(), this.coreBeatBoost);
+this.gateFlash.draw(g, cx, cy, r);
+
+// --- Occlusion tied to actual ribbon contact ---
+{
+  const r0 = r * 0.75;                         // your ribbon's start radius
+  const C  = findRibbonContact(cx, cy, r0, this.def);
+  const center = C.ang;                        // contact angle
+
+  // Match the ring stack radius: starts a little inside the big ring.
+  // You can tweak live: window.__occRO = 0.60..0.68
+  const occRO   = (window as any).__occRO ?? 0.64;
+  const rOcc    = r * occRO;
+
+  // Span / thickness breathe a touch with inhale
+  const inh     = this.inhale01();
+  const span    = (window as any).__occSpan  ?? (Math.PI * (0.78 + 0.04*inh));
+  const thick   = (window as any).__occThick ?? (12 + 6*inh);
+  const offset  = (window as any).__occOffset ?? 0.0;
+
+// --- flip to bottom if our sampled contact is on the top half
+let A = C.ang + offset;
+if (C.y < cy) A += Math.PI;               // move to the opposite side (bottom)
+A = Math.atan2(Math.sin(A), Math.cos(A)); // wrap to [-π, π]
+  // 1) Punch a thin annulus wedge to actually hide rings/core under lip
+  punchAnnulusArcEvenOdd(g, cx, cy, rOcc, thick, A, span);
+
+  // 2) Soft under-rim shadow that lines up with ring tones
+  strokeArc(
+    g, cx, cy, rOcc - 2, 8,
+    A, span * 0.86,
+    "rgba(8, 16, 32, 0.28)", "multiply",
+    { color: "rgba(0,0,0,0.35)", blur: 12 }
   );
 
-// --- Occlusion & contact rim (after ribbon, before ring restrokes) ---
-if ((window as any).__occOn ?? true) {
-  const inhale = this.inhale01();
-  const s = this.def.spiral!;
-  const rOcc = r * 0.95;
-
-  // 1) find where the ribbon centreline is closest to the gate ring
-  const ox = cx, oy = cy + r*1.05;           // ribbon origin
-  const a  = r * 0.75;                        // r0
-  const thetaMax = s.turns * TWO_PI * s.length;
-  const b = (a*0.65) / (s.turns*TWO_PI);
-
-  let bestT = 0, bestErr = 1e9, Px = 0, Py = 0;
-  const STEPS = 420;
-  for (let i=0;i<=STEPS;i++){
-    const t  = i/STEPS;
-    const th = t*thetaMax;
-    const rS = a + b*th;                      // centreline (skip wobble for stability)
-    const x  = ox + rS*Math.cos(th);
-    const y  = oy + rS*Math.sin(th);
-    const d  = Math.hypot(x-cx, y-cy);
-    const err = Math.abs(d - rOcc);
-    if (err < bestErr){ bestErr = err; bestT = t; Px = x; Py = y; }
-  }
-  const center = Math.atan2(Py - cy, Px - cx);     // angle on the gate
-  // approximate ribbon width at that t (close to your renderer logic)
-  const baseW = s.baseWidth * (0.90 + 0.45*inhale);
-  const head  = Math.min(1, Math.max(0, (bestT-0.04)/(0.18-0.04)));
-  const tail  = 1 - Math.min(1, Math.max(0, (bestT-0.78)/(0.97-0.78)));
-  const taper = Math.min(head, tail);
-  const wApprox = baseW * (0.25 + 0.75*taper);
-  const thick = (window as any).__occThick ?? (wApprox * 1.6);   // radial band to cut
-  const span  = (window as any).__occSpan  ?? (wApprox / rOcc * 2.2); // angular length
-
-  // 2) punch the exact overlap
-  punchAnnulusArc(g, cx, cy, rOcc, thick, center, span);
-
-  // 3) soft under-rim shadow + contact rim
-  strokeArc(g, cx, cy, r*0.94, 8, center, span*0.9,
-            "rgba(10,20,40,0.25)", "multiply",
-            { color:"rgba(0,0,0,0.35)", blur:12 });
-  strokeArc(g, cx, cy, rOcc, 6, center, span,
-            PAL(this.def).css("ring", 0.35), "lighter");
+  // 3) Contact rim highlight (sits above everything except ribbon shine)
+  strokeArc(
+    g, cx, cy, rOcc, 5,
+    A, span,
+    PAL(this.def).css("ring", 0.38), "lighter"
+  );
 }
 
-    // Rings + core
-    drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
-    drawSolarCoreGlow(
-      g,
-      this.def,
-      cx,
-      cy,
-      r,
-      this.inhale01(),
-      this.coreBeatBoost
-    );
-    this.gateFlash.draw(g, cx, cy, r);
+// --- Ribbon (now above the occluded rings/core) ---
+drawSpiralRibbon(
+  g, this.def,
+  cx, cy + r*1.05, r*0.75,
+  this.phase, this.inhale01(),
+  facing
+);
 
 
-    // Witness seed below spiral
-    this.witness.draw(g, cx, cy + r * 1.95, this.phase);
-  }
+// 4) witness
+this.witness.draw(g, cx, cy + r*1.95, this.phase);
+
+}
+
 
   private inhale01(): number {
     if (this.clock?.breath01)
