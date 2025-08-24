@@ -34,6 +34,8 @@ uniform float u_ringGainR;
 
 uniform float u_scroll;
 
+uniform float u_flow; // 0..1 alignmentScore
+
 uniform int u_debugMode;   // 0=off, 1=lens, 2=warp mag, 3=ring isolines, 4=gy diff
 
 float softstep(float edge0, float edge1, float x) {
@@ -143,7 +145,7 @@ float r = rCenter;
 
   // Warm core carry (subtle GL contribution that blends with 2D core)
 float coreMask = exp(-pow(dist / (ringR * 0.65), 2.0));
-float coreGain = 0.10 + 0.20 * u_inhale + 0.35 * u_beat; // tunable
+float coreGain = 0.10 + 0.20*u_inhale + 0.35*u_beat + 0.12*u_flow;
 vec3 Lcore = u_coreWarm * coreMask * coreGain;
 
   // Combine

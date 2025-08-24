@@ -1,39 +1,54 @@
 // src/chambers/solarSpiralGate/SolarSpiralGateChamber.ts
 import type { ChamberDef } from "@/types/ChamberDefs";
 import { drawGateRings } from "@/renderers/gateRings";
-import { drawSpiralRiver } from "@/renderers/spiralRenderer";
+//import { drawSpiralRiver } from "@/renderers/spiralRenderer";
 import { drawSpiralRibbon } from "@/renderers/spiralRibbon";
-
+import type { Vec2 } from "@/types/Core";
 import { WitnessVisual } from "@/systems/witnessVisual";
 import { GateFlash } from "@/systems/gate";
 import { drawSolarCoreGlow } from "@/renderers/solarCoreGlow";
 
-export type GateGeom = { cx:number; cy:number; r:number };
-export type BreathClock = { breathPhase: () => number; breath01?: () => number };
+
+export type GateGeom = { cx: number; cy: number; r: number };
+export type BreathClock = {
+  breathPhase: () => number;
+  breath01?: () => number;
+};
 
 export const DEFAULT_SOLAR_SPIRAL_DEF: ChamberDef = {
   id: "solar-spiral-gate",
   systems: {
     breath: {
-      shape: 0.9, offset: 0.0, beatWidth: 0.08,
-      band: { alphaBase:0.22, alphaGain:0.35, alphaBeat:0.14 },
+      shape: 0.9,
+      offset: 0.0,
+      beatWidth: 0.08,
+      band: { alphaBase: 0.22, alphaGain: 0.35, alphaBeat: 0.14 },
       gate: { ringGain: 0.6 },
     },
     palette: {
-      solarCore:"#FFEFC2", ring:"#B9D7FF", spiral:"#A9C9FF",
-      horizon:"#90B6FF", spark:"#CFE3FF", bg:"#07162A",
-    }
+      solarCore: "#FFEFC2",
+      ring: "#B9D7FF",
+      spiral: "#A9C9FF",
+      horizon: "#90B6FF",
+      spark: "#CFE3FF",
+      bg: "#07162A",
+    },
   },
   spiral: {
-    turns: 1.15, length: 1.0, baseWidth: 10,
+    turns: 1.15,
+    length: 1.0,
+    baseWidth: 10,
     peristalsis: { freq: 2.0, amp: 0.6, phase: 0.0 },
-    glow: { core: 1.0, halo: 3.0 }
+    glow: { core: 1.0, halo: 3.0 },
   },
   witness: {
-    aura: { rBase:18, rGain:18, aBase:0.12, aGain:0.18 },
-    flash: { gain:0.6, decay: 2.8 }
-  }
+    aura: { rBase: 18, rGain: 18, aBase: 0.12, aGain: 0.18 },
+    flash: { gain: 0.6, decay: 2.8 },
+  },
 };
+
+function norm(v:Vec2){ const m=Math.hypot(v.x,v.y)||1; return {x:v.x/m,y:v.y/m}; }
+
 
 export class SolarSpiralGateChamber {
   private g: CanvasRenderingContext2D;
@@ -41,49 +56,74 @@ export class SolarSpiralGateChamber {
   private witness: WitnessVisual;
   private gateFlash: GateFlash;
 
-private clock?: BreathClock;
-private phase = 0;
-private prevPhase = 0;
-private bpm = 30;
-private coreBeatBoost = 0; // 0..1
+  private clock?: BreathClock;
+  private alignment = 0; // 0..1
+  private getFacing?: () => Vec2;
+  private phase = 0;
+  private prevPhase = 0;
+  private bpm = 30;
+  private coreBeatBoost = 0; // 0..1
+
+  private sampleTangent(rGate:number){
+  const s = this.def.spiral!;
+  const a = rGate * 0.75;                 // same r0 you pass to ribbon
+  const turns = s.turns, len = s.length;
+  const thetaMax = turns * Math.PI*2 * len;
+  const t = 0.62;                          // sample position (tweak 0.58..0.66)
+  const th = t * thetaMax;
+  const r = a + (a*0.65)/(turns*Math.PI*2) * th;  // r = a + bθ, b≈(a*0.65)/(turns*2π)
+  const b = (a*0.65)/(turns*Math.PI*2);
+  const dx = b*Math.cos(th) - r*Math.sin(th);
+  const dy = b*Math.sin(th) + r*Math.cos(th);
+  const m = Math.hypot(dx,dy)||1;
+  return { x: dx/m, y: dy/m };
+}
+
+private computeAlignment(facing:Vec2, rGate:number){
+  const tHat = this.sampleTangent(rGate);
+  const fHat = norm(facing);
+  const dot = tHat.x*fHat.x + tHat.y*fHat.y;     // [-1..1]
+  this.alignment = Math.max(0, Math.min(1, 0.5*(1+dot)));
+}
 
   constructor(
     g: CanvasRenderingContext2D,
     private getGate: () => GateGeom,
     def?: ChamberDef,
-    clock?: BreathClock
-  ){
+    clock?: BreathClock,
+    getFacing?: () => Vec2
+  ) {
     this.g = g;
     this.def = def ?? DEFAULT_SOLAR_SPIRAL_DEF;
-    this.clock = clock; 
+    this.clock = clock;
+    this.getFacing = getFacing;
     this.witness = new WitnessVisual(this.def);
     this.gateFlash = new GateFlash(this.def);
   }
 
-  private tick(dt:number){
+  private tick(dt: number) {
     this.prevPhase = this.phase;
     this.phase = this.clock
-      ? (this.clock.breathPhase() % 1)
-      : (this.phase + (this.bpm/60)*dt) % 1;
+      ? this.clock.breathPhase() % 1
+      : (this.phase + (this.bpm / 60) * dt) % 1;
 
     const w = this.def.systems?.breath?.beatWidth ?? 0.08;
-    if (this.prevPhase > (1 - w) && this.phase < w) {
+    if (this.prevPhase > 1 - w && this.phase < w) {
       this.witness.onBeat();
       this.gateFlash.onBeat();
       this.coreBeatBoost = Math.min(1, this.coreBeatBoost + 0.7); // pop the core
-      
-
     }
     this.witness.tick(dt);
     this.gateFlash.tick(dt);
-    this.coreBeatBoost = Math.max(0, this.coreBeatBoost - 2.5*dt);
-
+    this.coreBeatBoost = Math.max(0, this.coreBeatBoost - 2.5 * dt);
   }
 
-  private render(){
+  private render() {
     const g = this.g;
     const { cx, cy, r } = this.getGate();
 
+  const facing = this.getFacing ? this.getFacing() : {x:0,y:-1};
+  this.computeAlignment(facing, r);
     // NOTE: no bg fill here—the SkyGL layer should remain visible beneath.
 
     // Horizon (soft line slightly below ring center)
@@ -92,42 +132,44 @@ private coreBeatBoost = 0; // 0..1
     g.strokeStyle = "rgba(141,177,255,0.6)"; // uses compositing; palette already similar
     g.lineWidth = 2;
     g.beginPath();
-    g.moveTo(0, cy + r*1.05);
-    g.lineTo(g.canvas.width, cy + r*1.05);
+    g.moveTo(0, cy + r * 1.05);
+    g.lineTo(g.canvas.width, cy + r * 1.05);
     g.stroke();
     g.restore();
 
     // Rings + core
-drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
-drawSolarCoreGlow(g, this.def, cx, cy, r, this.inhale01(), this.coreBeatBoost);
-this.gateFlash.draw(g, cx, cy, r);
+    drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
+    drawSolarCoreGlow(
+      g,
+      this.def,
+      cx,
+      cy,
+      r,
+      this.inhale01(),
+      this.coreBeatBoost
+    );
+    this.gateFlash.draw(g, cx, cy, r);
 
-
-//     // Spiral river (origin just below horizon)
-//     drawSpiralRiver(
-//   g, this.def,
-//   cx, cy + r*1.05, r*0.75,
-//   this.phase,
-//   this.inhale01()   // 0..1 (from BreathRuntime or derived from phase)
-// );
-drawSpiralRibbon(g, this.def, cx, cy + r*1.05, r*0.75, this.phase, this.inhale01());
-
+ console.log(facing)
+  drawSpiralRibbon(
+    g, this.def,
+    cx, cy + r*1.05, r*0.75,
+    this.phase, this.inhale01(),
+    facing
+  );
 
     // Witness seed below spiral
-    this.witness.draw(g, cx, cy + r*1.95, this.phase);
+    this.witness.draw(g, cx, cy + r * 1.95, this.phase);
   }
 
   private inhale01(): number {
-  // Prefer the BreathRuntime value if supplied
-  if (this.clock?.breath01) {
-    const v = this.clock.breath01();
-    return Math.max(0, Math.min(1, v));
+    if (this.clock?.breath01)
+      return Math.max(0, Math.min(1, this.clock.breath01()));
+    return Math.sin(this.phase * Math.PI * 2) * 0.5 + 0.5;
   }
-  // Fallback: derive from phase (simple sinus)
-  return Math.sin(this.phase * Math.PI * 2) * 0.5 + 0.5;
-}
+
   // what mount.ts expects
-  update(dt:number){
+  update(dt: number) {
     this.tick(dt);
     this.render();
   }

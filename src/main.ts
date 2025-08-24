@@ -1,20 +1,14 @@
-import {
-  BreathRuntime,
-  type BreathConfig,
-} from "@systems/breath/BreathRuntime";
-import { SkyGLRenderer } from "@renderers/skygl/skyGLRenderer";
-import { SolarSpiralGateChamber } from "@chambers/solarSpiralGate/SolarSpiralGateChamber";
-import { SceneCanvas } from "@chambers/solarSpiralGate/spiral/SceneCanvas";
-import { startApp } from "./app/AppShell";
+
 import '@/app/engine-root';
+document.ontouchmove = function(event){
+    event.preventDefault();
+}
 
+// somewhere shared
+(window as any).__occOn = true; // press 'o' to toggle
+window.addEventListener('keydown', e => {
+  if (e.key.toLowerCase()==='o'){ (window as any).__occOn = !(window as any).__occOn; }
+});
 
-import {
-  SOLAR_SPIRAL_CFG,
-  SOLAR_RING_CLOCK,
-  SOLAR_TRAVELER_CFG,
-  SOLAR_WITNESS_CFG,
-  SOLAR_VISUALS,
-} from "@chambers/presets/solarPresets";
 
 
