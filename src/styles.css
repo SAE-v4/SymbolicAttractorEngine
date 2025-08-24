@@ -1,10 +1,10 @@
-html, body, #engine-root { height: 100%; margin: 0; user-select: none; -webkit-user-select: none; }
-body {background-color: rgb(110 150 225);}
-#engine-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
-#ui {
-  position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 8px);
-  display: flex; gap: 8px; padding: 8px; justify-content: center; align-items: center;
-  background: rgba(0,0,0,0.25); -webkit-backdrop-filter:  blur(6px); color: white; font-family: system-ui, sans-serif; backdrop-filter: blur(6px); color: white; font-family: system-ui, sans-serif;
+/* new */
+html, body { height: 100%; margin: 0; user-select: none; -webkit-user-select: none; -webkit-overflow-scrolling: auto;overflow:hidden; }
+engine-root { display: block; height: 100%; }
+
+/* optional: safer on mobile browser chrome */
+@supports (height: 100dvh) {
+  engine-root { height: 100dvh; }
 }
-#ui button { padding: 6px 10px; }
-#ui input[type="range"] { width: 160px; }
+
+

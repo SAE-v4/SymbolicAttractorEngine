@@ -1,1 +1,1 @@
-export * from "./FlowGate";
+export * from "./gateFlash";

@@ -1,39 +1,11 @@
-import { EngineLoop } from "./engine/EngineLoop";
-import { SpiralGateChamber } from "./chambers/flow/SpiralGateChamber";
-import { WitnessControls } from "./controls/WitnessControls";
-import { Flags } from "./utils/Flags";
-import { TempoEngine } from "./tempo/TempoEngine";
-import { applyBreathTuningFromQueryOnce } from "@config/applyBreathTuning";
 
-applyBreathTuningFromQueryOnce();
+import '@/app/engine-root';
 
-const canvas = document.getElementById("engine-canvas") as HTMLCanvasElement;
-const tempo = new TempoEngine();
-const flags = new Flags();
-
-
-const services = {
-  tempo: {
-    phase: () => tempo.phase(),
-    getBpm: () => tempo.getBpm(),
-    setBpm: (v:number) => tempo.setBpm(v),
-    onBeat: (k: string, fn: () => void) => tempo.onBeat(k, fn),
-  },
-};
-
-const chamber = new SpiralGateChamber(canvas, services, flags);
-
-new WitnessControls(
-  canvas,
-  (dx,dy) => chamber.setWitnessFacing(dx,dy),
-  (amt)   => chamber.thrustWitness(amt),
-  ()      => chamber.getWitnessPos()
-);
-
-services.tempo.onBeat("quarter", () => chamber.onBeat?.());
-
-const loop = new EngineLoop({
-  onUpdate: (dt) => { tempo.tick(dt); chamber.update(dt); },
-  onRender: (a) => chamber.render(a),
+// somewhere shared
+(window as any).__occOn = true; // press 'o' to toggle
+window.addEventListener('keydown', e => {
+  if (e.key.toLowerCase()==='o'){ (window as any).__occOn = !(window as any).__occOn; }
 });
-loop.start();
+
+
+

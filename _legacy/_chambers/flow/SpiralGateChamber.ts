@@ -1,10 +1,10 @@
 import { MotionSystem } from "@systems/motion";
 import { FlowGate } from "@systems/gate";
-import { drawPhaseFX } from "@render/phaseFX";
-import { drawGate } from "@render/gateRenderer";
-import { drawWitness } from "@render/WitnessRenderer";
+import { drawPhaseFX } from "_legacy/render/phaseFX";
+import { drawGate } from "_legacy/render/gateRenderer";
+import { drawWitness } from "_legacy/render/WitnessRenderer";
 import { AudioSystem } from "@systems/audio/AudioSystem";
-import { drawWitnessDebug } from "debug/overlay";
+import { drawWitnessDebug } from "_legacy/utils/overlay";
 
 
 export class SpiralGateChamber {

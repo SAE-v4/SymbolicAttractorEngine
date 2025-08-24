@@ -12,11 +12,17 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "baseUrl": "src",
     "paths": {
+      "@/*": ["*"],
+      
       "@engine/*": ["engine/*"],
       "@systems/*": ["systems/*"],
-      "@render/*": ["render/*"],
       "@utils/*": ["utils/*"],
-      "@config/*": ["config/*"]
+      "@config/*": ["config/*"],
+      "@modulation/*": ["modulation/*"],
+      "@types/*": ["types/*"],
+      "@renderers/*": ["renderers/*"],
+      "@chambers/*": ["chambers/*"]
+
     }
   },
   "include": ["src", "vite.config.ts"]
