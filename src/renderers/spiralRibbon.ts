@@ -1,4 +1,3 @@
-// src/renderers/S 
 import { PAL } from "@/config/palette";
 import type { ChamberDef } from "@/types/ChamberDefs";
 
@@ -93,13 +92,6 @@ export function drawSpiralRibbon(
   // core
   og.save();
   og.globalCompositeOperation = "lighter";
-  const grad = og.createLinearGradient(L[0].x, L[0].y, R[R.length-1].x, R[R.length-1].y);
-// near outer section: brighter, more opaque
-grad.addColorStop(0.00, pal.css("spiral", 0.95));
-grad.addColorStop(0.50, pal.css("spiral", 0.90));
-// inner tail: a touch dimmer/desaturated
-grad.addColorStop(1.00, pal.css("spiral", 0.65));
-og.fillStyle = grad;
   og.fillStyle = pal.css("spiral", 0.88);
   og.beginPath();
   og.moveTo(L[0].x,L[0].y);
@@ -115,8 +107,6 @@ og.strokeStyle = pal.css("spiral", 0.95);
 og.lineCap = "round";
 og.shadowColor = pal.css("spiral", 0.9);
 og.shadowBlur = 10;
-
-
 
 const SEG = 7; // segment granularity for varying width
 og.beginPath();

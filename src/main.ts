@@ -1,8 +1,5 @@
 
 import '@/app/engine-root';
-document.ontouchmove = function(event){
-    event.preventDefault();
-}
 
 // somewhere shared
 (window as any).__occOn = true; // press 'o' to toggle

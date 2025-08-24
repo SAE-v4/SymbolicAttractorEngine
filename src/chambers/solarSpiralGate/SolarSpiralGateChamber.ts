@@ -7,6 +7,49 @@ import type { Vec2 } from "@/types/Core";
 import { WitnessVisual } from "@/systems/witnessVisual";
 import { GateFlash } from "@/systems/gate";
 import { drawSolarCoreGlow } from "@/renderers/solarCoreGlow";
+import { PAL } from "@/config/palette";
+
+function punchAnnulusArc(
+  g: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  r: number,               // center radius (≈ ring radius)
+  thick: number,           // thickness of the band to remove
+  center: number,          // center angle (rad)
+  span: number             // angular span (rad)
+){
+  const rOuter = r + thick * 0.5;
+  const rInner = r - thick * 0.5;
+
+  g.save();
+  g.globalCompositeOperation = "destination-out";
+  g.beginPath();
+  g.arc(cx, cy, rOuter, center - span/2, center + span/2, false);
+  g.arc(cx, cy, rInner, center + span/2, center - span/2, true); // reverse to make a ring
+  g.closePath();
+  g.fill();
+  g.restore();
+}
+
+function strokeArc(
+  g: CanvasRenderingContext2D,
+  cx: number, cy: number,
+  r: number, lw: number,
+  center: number, span: number,
+  style: string, blend: GlobalCompositeOperation = "source-over",
+  shadow?: { color:string; blur:number }
+){
+  g.save();
+  g.globalCompositeOperation = blend;
+  g.strokeStyle = style;
+  g.lineCap = "round";
+  g.lineWidth = lw;
+  if (shadow){ g.shadowColor = shadow.color; g.shadowBlur = shadow.blur; }
+  g.beginPath();
+  g.arc(cx, cy, r, center - span/2, center + span/2, false);
+  g.stroke();
+  g.restore();
+}
+
 
 
 export type GateGeom = { cx: number; cy: number; r: number };
@@ -157,6 +200,35 @@ private computeAlignment(facing:Vec2, rGate:number){
     this.phase, this.inhale01(),
     facing
   );
+
+  // --- Occlusion & contact rim (after ribbon, before ring restrokes) ---
+if ((window as any).__occOn ?? true) {
+  // center the mask at TOP (−π/2), let breathe a little
+  const inhale = this.inhale01();
+  const span   = (window as any).__occSpan ?? (Math.PI * (0.46 + 0.06*inhale));  // ~83°..86°
+  const offset = (window as any).__occOffset ?? 0;                                // radians
+  const thick  = (window as any).__occThick ?? (12 + 8*inhale);                   // px
+  const center = -Math.PI/2 + offset;
+
+  // 1) punch a narrow ring segment under the top lip
+  punchAnnulusArc(g, cx, cy, r*0.95, thick, center, span);
+
+  // 2) soft under-rim shadow for depth
+  strokeArc(
+    g, cx, cy, r*0.93, 8,
+    center, span * 0.86,
+    "rgba(10,20,40,0.25)", "multiply",
+    { color: "rgba(0,0,0,0.35)", blur: 12 }
+  );
+
+  // 3) contact rim highlight to “seal” the edge
+  strokeArc(
+    g, cx, cy, r*0.95, 6,
+    center, span,
+    PAL(this.def).css("ring", 0.35), "lighter"
+  );
+}
+
 
     // Witness seed below spiral
     this.witness.draw(g, cx, cy + r * 1.95, this.phase);
