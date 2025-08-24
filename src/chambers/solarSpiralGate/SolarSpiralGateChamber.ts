@@ -259,7 +259,7 @@ A = Math.atan2(Math.sin(A), Math.cos(A)); // wrap to [-π, π]
   strokeArc(
     g, cx, cy, rOcc, 5,
     A, span,
-    PAL(this.def).css("ring", 0.38), "lighter"
+    PAL(this.def).css("ring", 0.32), "lighter"
   );
 }
 
