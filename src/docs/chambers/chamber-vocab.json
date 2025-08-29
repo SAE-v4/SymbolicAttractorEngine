@@ -1,0 +1,104 @@
+[
+  {
+    "id": "light_shadow",
+    "title": "Light / Shadow",
+    "type": "polarity",
+    "lexical_core": ["light", "shadow"],
+    "glyphs": ["sun_radiant", "shadow_disc_or_inward_spiral"],
+    "geometry": "vertical_axis_with_poles_and_concentric_rings",
+    "breath_dynamic": {
+      "inhale": "poles_draw_toward_center",
+      "exhale": "poles_separate",
+      "pause": "axis_brightens"
+    },
+    "effect": "reveals_law_of_polarity",
+    "layer_emphasis": ["walls", "ground"],
+    "seasonal_emphasis": ["spring", "summer", "winter"],
+    "interaction_notes": "facing_pole_amplifies; midpoint_reveals_witness"
+  },
+  {
+    "id": "warmth_coolness",
+    "title": "Warmth / Coolness",
+    "type": "affinity_cluster",
+    "lexical_core": ["warmth", "heat", "sun", "coolness"],
+    "glyphs": ["heart_spiral", "flame_triangle", "sun_circle", "cool_droplet"],
+    "geometry": "triangular_or_circular_cluster_with_spiral_links",
+    "breath_dynamic": {
+      "inhale": "cluster_contracts_brightens",
+      "exhale": "cluster_expands_softly",
+      "pause": "balanced_glow"
+    },
+    "effect": "shows_law_of_affinity",
+    "layer_emphasis": ["sky", "walls"],
+    "seasonal_emphasis": ["spring", "early_summer"],
+    "interaction_notes": "spiral_gestures_tighten_cluster; facing_sun_tempers_with_cool"
+  },
+  {
+    "id": "witness_equilibrium",
+    "title": "Witness Equilibrium",
+    "type": "stillness",
+    "lexical_core": ["witness", "center", "pause"],
+    "glyphs": ["point_in_circle"],
+    "geometry": "centered_concentric_rings",
+    "breath_dynamic": {
+      "inhale": "rings_contract",
+      "exhale": "rings_expand",
+      "pause": "all_steady"
+    },
+    "effect": "resets_to_still_point",
+    "layer_emphasis": ["ground", "sky"],
+    "seasonal_emphasis": ["winter", "solstice"],
+    "interaction_notes": "appears_when_resting; calms_other_diagrams"
+  },
+  {
+    "id": "flame_offering",
+    "title": "Flame / Offering",
+    "type": "ritual_gesture",
+    "lexical_core": ["flame", "offering", "gift", "release"],
+    "glyphs": ["flame_upward", "cupped_crescent_vessel"],
+    "geometry": "vertical_chalice_vessel_below_flame_above_with_rising_arcs",
+    "breath_dynamic": {
+      "inhale": "flame_returns_to_vessel",
+      "exhale": "flame_rises_spreads",
+      "pause": "hovering_ember"
+    },
+    "effect": "frames_outbreath_as_gift",
+    "layer_emphasis": ["ground", "walls", "sky_edge"],
+    "seasonal_emphasis": ["high_summer"],
+    "interaction_notes": "outward_spiral_flight_strengthens_flame; upward_traces_offer"
+  },
+  {
+    "id": "heart_spirit",
+    "title": "Heart / Spirit",
+    "type": "ascent",
+    "lexical_core": ["heart", "spirit", "uplift"],
+    "glyphs": ["heart_spiral", "spirit_spiral_up"],
+    "geometry": "vertical_pair_with_shared_halo_and_ladder_arcs",
+    "breath_dynamic": {
+      "inhale": "spirit_rises_heart_glows_inward",
+      "exhale": "shared_radiance_spreads",
+      "pause": "gentle_union"
+    },
+    "effect": "converts_warmth_into_ascent",
+    "layer_emphasis": ["walls", "sky"],
+    "seasonal_emphasis": ["late_spring", "midsummer"],
+    "interaction_notes": "inward_spirals_brighten_heart; upward_facing_sustains_ascent"
+  },
+  {
+    "id": "inhale_exhale",
+    "title": "Inhale / Exhale",
+    "type": "breath_foundation",
+    "lexical_core": ["inhale", "exhale", "pulse"],
+    "glyphs": ["inward_spiral", "outward_spiral", "optional_witness_point"],
+    "geometry": "mirrored_spirals_across_horizontal_line_center_pause",
+    "breath_dynamic": {
+      "inhale": "inward_spiral_animates",
+      "exhale": "outward_spiral_animates",
+      "pause": "witness_point_revealed"
+    },
+    "effect": "exposes_chamber_metronome",
+    "layer_emphasis": ["sky", "walls", "ground"],
+    "seasonal_emphasis": ["all"],
+    "interaction_notes": "user_gestures_conduct_tempo; off_tempo_softens_brightness"
+  }
+]
