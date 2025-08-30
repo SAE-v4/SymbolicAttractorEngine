@@ -1,0 +1,12 @@
+[
+  {"id":"dot","name":"Point / Dot","category":"point","svg_hint":"circle r=1"},
+  {"id":"circle","name":"Circle / Disc","category":"circle","svg_hint":"ring r=16 stroke"},
+  {"id":"spiral","name":"Spiral","category":"spiral","svg_hint":"archimedean 1.75 turns"},
+  {"id":"line_v","name":"Vertical Line","category":"line","svg_hint":"x=0,y=-h..h"},
+  {"id":"line_h","name":"Horizontal Line","category":"line","svg_hint":"y=0,x=-w..w"},
+  {"id":"triangle","name":"Triangle / Flame","category":"triangle","svg_hint":"equilateral up"},
+  {"id":"heart","name":"Heart Spiral","category":"heart","svg_hint":"heart with inner curl"},
+  {"id":"droplet","name":"Ellipse / Droplet","category":"droplet","svg_hint":"ellipse tilt"},
+  {"id":"crescent","name":"Crescent / Vessel","category":"crescent","svg_hint":"arc 180° open up"},
+  {"id":"vesica","name":"Vesica / Almond","category":"vesica","svg_hint":"circle-circle overlap"}
+]

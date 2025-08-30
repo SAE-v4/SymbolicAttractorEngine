@@ -1,0 +1,65 @@
+[
+  {
+    "id":"diag_light_shadow",
+    "phrase_glyph_id":"light_shadow",
+    "geometry":"vertical axis with radiant disc above and oblique ellipse below; faint rings",
+    "breath_dynamic":{"inhale":"poles ease inward","exhale":"poles separate, axis bright","pause":"stabilised polarity"},
+    "layers":["walls","ground"],
+    "seasonal_emphasis":["spring","summer","winter"],
+    "interaction_notes":"face a pole to amplify; midpoint reveals witness"
+  },
+  {
+    "id":"diag_warmth_coolness",
+    "phrase_glyph_id":"warmth_coolness",
+    "geometry":"triangular cluster (heart, flame, sun) with orbiting cool droplet on comet arc",
+    "breath_dynamic":{"inhale":"cluster contracts","exhale":"cluster expands","pause":"balanced constellation"},
+    "layers":["sky","walls"],
+    "seasonal_emphasis":["spring","early_summer"],
+    "interaction_notes":"spiral gestures tighten cluster; facing sun tempers with coolness"
+  },
+  {
+    "id":"diag_witness",
+    "phrase_glyph_id":"witness",
+    "geometry":"centered concentric rings, point at center",
+    "breath_dynamic":{"inhale":"rings contract","exhale":"rings expand","pause":"all steady"},
+    "layers":["ground","sky"],
+    "seasonal_emphasis":["winter","solstice"],
+    "interaction_notes":"invoked at rest; calms other diagrams"
+  },
+  {
+    "id":"diag_scale_seal",
+    "phrase_glyph_id":"scale_seal",
+    "geometry":"balanced pair over measure bar with cupping arc; seed appears at midpoint",
+    "breath_dynamic":{"inhale":"pair draws inward","exhale":"seed shines","pause":"sealed proportion"},
+    "layers":["walls","ground","sky"],
+    "seasonal_emphasis":["late_summer","early_autumn"],
+    "interaction_notes":"micro-gestures adjust balance; off-center breaks seal"
+  },
+  {
+    "id":"diag_flame_offering",
+    "phrase_glyph_id":"flame_offering",
+    "geometry":"vessel crescent below with upward flame; rising arcs",
+    "breath_dynamic":{"inhale":"flame returns","exhale":"flame rises","pause":"hovering ember"},
+    "layers":["ground","walls","sky"],
+    "seasonal_emphasis":["high_summer"],
+    "interaction_notes":"outward spiral flight strengthens flame"
+  },
+  {
+    "id":"diag_heart_spirit",
+    "phrase_glyph_id":"heart_spirit",
+    "geometry":"heart below with small ascending spiral above; halo",
+    "breath_dynamic":{"inhale":"heart glows, spirit contracts","exhale":"spirit ascends, shared radiance","pause":"gentle union"},
+    "layers":["walls","sky"],
+    "seasonal_emphasis":["late_spring","midsummer"],
+    "interaction_notes":"inward spirals brighten heart; upward facing sustains ascent"
+  },
+  {
+    "id":"diag_inhale_exhale",
+    "phrase_glyph_id":"inhale_exhale",
+    "geometry":"single recursive spiral with central pause point",
+    "breath_dynamic":{"inhale":"contract toward center","exhale":"expand outward","pause":"point steady"},
+    "layers":["sky","walls","ground"],
+    "seasonal_emphasis":["all"],
+    "interaction_notes":"gesture conducts tempo; off-tempo softens brightness"
+  }
+]

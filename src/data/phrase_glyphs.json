@@ -1,0 +1,87 @@
+[
+  {
+    "id":"light_shadow",
+    "title":"Light / Shadow",
+    "components":[
+      {"base_id":"circle","role":"light_disc"},
+      {"base_id":"droplet","role":"shadow_void"},
+      {"base_id":"line_v","role":"axis"}
+    ],
+    "layout":"axis",
+    "breath_dynamic_hint":"inhale: poles draw inward; exhale: separate; pause: axis brightens",
+    "tags":["polarity","law"]
+  },
+  {
+    "id":"warmth_coolness",
+    "title":"Warmth / Coolness",
+    "components":[
+      {"base_id":"heart","role":"warmth"},
+      {"base_id":"triangle","role":"heat"},
+      {"base_id":"circle","role":"sun"},
+      {"base_id":"droplet","role":"coolness_orbit","transform_hint":"arc with tail"}
+    ],
+    "layout":"cluster",
+    "breath_dynamic_hint":"inhale: cluster contracts; exhale: expands; pause: balanced",
+    "tags":["affinity","cluster"]
+  },
+  {
+    "id":"witness",
+    "title":"Witness Equilibrium",
+    "components":[
+      {"base_id":"circle","role":"ring"},
+      {"base_id":"dot","role":"center"}
+    ],
+    "layout":"centered",
+    "breath_dynamic_hint":"rings contract/expand; pause steady",
+    "tags":["stillness","crown"]
+  },
+  {
+    "id":"scale_seal",
+    "title":"Scale / Seal",
+    "components":[
+      {"base_id":"dot","role":"left_pole"},
+      {"base_id":"dot","role":"right_pole"},
+      {"base_id":"line_h","role":"measure_bar"},
+      {"base_id":"crescent","role":"cupping_arc"},
+      {"base_id":"dot","role":"seed"}
+    ],
+    "layout":"pair_balance",
+    "breath_dynamic_hint":"inhale: pair draws inward; exhale: seed appears; pause: sealed",
+    "tags":["measure","union","seed"]
+  },
+  {
+    "id":"flame_offering",
+    "title":"Flame / Offering",
+    "components":[
+      {"base_id":"triangle","role":"flame"},
+      {"base_id":"crescent","role":"vessel"},
+      {"base_id":"line_v","role":"uplift_hint"}
+    ],
+    "layout":"chalice_vertical",
+    "breath_dynamic_hint":"inhale: flame returns to vessel; exhale: rises; pause: ember",
+    "tags":["deed","gift"]
+  },
+  {
+    "id":"heart_spirit",
+    "title":"Heart / Spirit",
+    "components":[
+      {"base_id":"heart","role":"heart"},
+      {"base_id":"spiral","role":"spirit_up"},
+      {"base_id":"line_v","role":"alignment_hint"}
+    ],
+    "layout":"vertical_pair",
+    "breath_dynamic_hint":"inhale: spirit contracts; exhale: ascends; pause: union",
+    "tags":["ascent","warmth"]
+  },
+  {
+    "id":"inhale_exhale",
+    "title":"Inhale / Exhale",
+    "components":[
+      {"base_id":"spiral","role":"recursive_spiral"},
+      {"base_id":"dot","role":"pause_center"}
+    ],
+    "layout":"spiral_center",
+    "breath_dynamic_hint":"inhale: spiral contracts; exhale: expands; pause: dot steady",
+    "tags":["breath","metronome"]
+  }
+]

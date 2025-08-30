@@ -1,0 +1,21 @@
+{
+  "id": "cycle_sevenfold",
+  "order": [
+    "light_shadow",
+    "warmth_coolness",
+    "heart_spirit",
+    "flame_offering",
+    "inhale_exhale",
+    "scale_seal",
+    "witness"
+  ],
+  "narrative_lines": {
+    "light_shadow": "Every path begins in light and shadow — a polarity that holds the world apart.",
+    "warmth_coolness": "Yet warmth calls to warmth, coolness tempers the flame — likeness gathers in quiet harmony.",
+    "heart_spirit": "From the heart rises spirit — warmth ascending into light.",
+    "flame_offering": "What is gathered must be given — the flame offered into the world.",
+    "inhale_exhale": "All life breathes — drawing inward, flowing outward, resting in between.",
+    "scale_seal": "In due measure all is sealed — proportion found, seed sown for what will return.",
+    "witness": "And in stillness the Witness abides — the cycle rests, and begins again."
+  }
+}
