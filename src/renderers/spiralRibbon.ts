@@ -9,6 +9,7 @@ export function drawSpiralRibbon(
   r0: number,
   phase: number,
   inhale: number,
+  ribbonAngle: number,              // <-- NEW
   facing?: { x:number; y:number },
   cue?: { moveMag:number; align:number }
 ){
@@ -79,6 +80,20 @@ export function drawSpiralRibbon(
     L.push({ x: p.x + nx*w, y: p.y + ny*w });
     R.push({ x: p.x - nx*w, y: p.y - ny*w });
   }
+
+  // --- rotate whole ribbon so its "head" aims at ribbonAngle ---
+// pick the head sample (you already use ~0.62 later for the sheen)
+const iHead = Math.max(0, Math.min(steps, Math.floor(0.62 * steps)));
+const angHeadNow = Math.atan2(P[iHead].y - cy, P[iHead].x - cx);
+const delta = Math.atan2(Math.sin(ribbonAngle - angHeadNow), Math.cos(ribbonAngle - angHeadNow)); // wrap
+
+// rotate P/L/R in-place
+for (let i = 0; i <= steps; i++) {
+  const p = P[i]; const pr = rotAbout(p.x, p.y, cx, cy, delta); P[i] = pr;
+  const l = L[i]; if (l) { const lr = rotAbout(l.x, l.y, cx, cy, delta); L[i] = lr; }
+  const r = R[i]; if (r) { const rr = rotAbout(r.x, r.y, cx, cy, delta); R[i] = rr; }
+}
+
 
   // --- HALO (optional) ---
   if (!(window as any).__ribHaloOff){
@@ -191,6 +206,16 @@ function smoothstep(a: number, b: number, x: number) {
 function norm(v: { x: number; y: number }) {
   const m = Math.hypot(v.x, v.y) || 1;
   return { x: v.x / m, y: v.y / m };
+}
+
+function rotAbout(
+  x: number, y: number,
+  cx: number, cy: number,
+  ang: number
+){
+  const dx = x - cx, dy = y - cy;
+  const c = Math.cos(ang), s = Math.sin(ang);
+  return { x: cx + dx*c - dy*s, y: cy + dx*s + dy*c };
 }
 
 // simple offscreen cache (module-level)

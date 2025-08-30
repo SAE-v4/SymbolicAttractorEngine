@@ -5,10 +5,16 @@ import { drawGateRings } from "@/renderers/gateRings";
 import { drawSpiralRibbon } from "@/renderers/spiralRibbon";
 import type { Vec2 } from "@/types/Core";
 import { WitnessVisual } from "@/systems/witnessVisual";
-import { GateFlash } from "@/systems/gate";
-import { drawSolarCoreGlow } from "@/renderers/solarCoreGlow";
-import { PAL } from "@/config/palette";
-
+import { GateFlash } from "@systems/gate";
+import { drawSolarCoreGlow } from "@renderers/solarCoreGlow";
+import { PAL } from "@config/palette";
+import { AXES } from "@config/axes";
+import { drawAxisRails } from "@/renderers/axisRails";
+import { drawBeaconDot } from "@renderers/beacons";
+import { camFromBreath, layerTransform } from "@/systems/parallaxCamera";
+import { drawGateThroat } from "@/renderers/gateThroat";
+// (optional) remove beeAvatar import if unused
+// import { drawBeeAvatar } from "@/renderers/beeAvatar";
 const TWO_PI = Math.PI * 2;
 
 function clamp01(x:number){ return x < 0 ? 0 : x > 1 ? 1 : x; }
@@ -20,6 +26,7 @@ function ribbonConstants(r0:number, turns:number){
   const thetaMax = turns * TWO_PI;         // s.length assumed 1.0
   return { a, b, thetaMax };
 }
+
 
 // Approximate the ribbon contact point near the “top” (−π/2)
 // We scan a tiny window of t and pick the point closest to that angle.
@@ -150,6 +157,7 @@ private prevFacing = { x: 0, y: -1 };
 private fSm = { x: 0, y: -1 };
 private moveMag = 0;
 
+private INTERACTIVE = false; // ← tableau/parallax mode (no user input)
 
 
   private sampleTangent(rGate:number){
@@ -210,23 +218,30 @@ private render() {
   const g = this.g;
   const { cx, cy, r } = this.getGate();
 
-  
+  // Camera from breath
+  const inh = this.inhale01();
+  const cam = camFromBreath(inh);
+    const pal = PAL(this.def);
 
-const facing = this.fSm;
-this.computeAlignment(facing, r);
-
-  // --- HOIST: compute contact angle once
-  const rRibbon = r * 0.75;                    // same r0 you pass to the ribbon
+  // --- Spiral contact (for occlusion orientation + ribbon aiming)
+  const rRibbon = r * 0.75;
   const C = findRibbonContact(cx, cy, rRibbon, this.def);
 
+  // Ribbon aim: in tableau mode, let it slowly drift with phase
+  let ribbonAngle = -Math.PI / 2 + this.phase * TWO_PI * 0.10;
+  ribbonAngle = Math.atan2(Math.sin(ribbonAngle), Math.cos(ribbonAngle));
+this.witness.draw(g, cx + Math.cos(ribbonAngle) * r*1.95,
+                     cy + Math.sin(ribbonAngle) * r*1.95,
+                     this.phase);
+
+  // Occluder arc orientation (reuse your logic)
   const offset = (window as any).__occOffset ?? 0.0;
   const side   = (window as any).__occSide ?? "bottom"; // "bottom" | "top" | "auto"
-
-  let A = C.ang + offset;                       // base angle from ribbon
+  let A = C.ang + offset;
   if (side === "bottom" || (side === "auto" && C.y < cy)) A += Math.PI;
-  // wrap to [-π, π] so small adjustments behave nicely
   A = Math.atan2(Math.sin(A), Math.cos(A));
-  // 1) Horizon
+
+  // --- HORIZON (kept as-is; no parallax so it reads as screen-space)
   g.save();
   g.globalAlpha = 0.18;
   g.strokeStyle = "rgba(141,177,255,0.6)";
@@ -237,40 +252,73 @@ this.computeAlignment(facing, r);
   g.stroke();
   g.restore();
 
-// 2) Rings + core
-  drawGateRings(g, this.def, cx, cy, r, this.phase, false, this.inhale01());
-  drawSolarCoreGlow(g, this.def, cx, cy, r, this.inhale01(), this.coreBeatBoost);
-  this.gateFlash.draw(g, cx, cy, r);
+  // --- SKY / CORE (z = -3)
+  g.save();
+  layerTransform(g, cam, -3, cx, cy);
+  drawSolarCoreGlow(g, this.def, cx, cy, r, inh, this.coreBeatBoost);
+  g.restore();
 
-  // 3) Occlusion (now reuse A here)
+  // --- RINGS (z = -2)
+  g.save();
+  layerTransform(g, cam, -2, cx, cy);
+  drawGateRings(g, this.def, cx, cy, r, this.phase, false, inh);
+  this.gateFlash.draw(g, cx, cy, r);
+  g.restore();
+
+  // --- THROAT (z = -1) – joins rings to spiral
+  g.save();
+  layerTransform(g, cam, -1, cx, cy);
+  drawGateThroat(g, cx, cy, r, inh);
+  g.restore();
+
+  // --- OCCLUSION (z = -1) – sits with the throat/rings plane
   if ((window as any).__occOn ?? true) {
+    g.save();
+    layerTransform(g, cam, -1, cx, cy);
     const occRO  = (window as any).__occRO ?? 0.64;
     const rOcc   = r * occRO + ((window as any).__occBias ?? 0);
-    const inh    = this.inhale01();
-    const span   = (window as any).__occSpan  ?? (Math.PI * (0.78 + 0.04*inh));
-    const thick  = (window as any).__occThick ?? (12 + 6*inh);
-
+    const span   = (window as any).__occSpan  ?? (Math.PI * (0.78 + 0.04 * inh));
+    const thick  = (window as any).__occThick ?? (12 + 6 * inh);
     punchAnnulusArcEvenOdd(g, cx, cy, rOcc, thick, A, span);
     strokeArc(g, cx, cy, rOcc - 2, 8, A, span * 0.86,
               "rgba(8,16,32,0.28)", "multiply", { color:"rgba(0,0,0,0.35)", blur:12 });
     strokeArc(g, cx, cy, rOcc, 5, A, span, PAL(this.def).css("ring", 0.38), "lighter");
+    g.restore();
   }
 
-  // 4) Facing cues (use the same A)
-  this.drawFacingCues(g, cx, cy, r, A, facing, this.alignment, this.moveMag ?? 0);
+  // --- SPIRAL (z = 0)
+  g.save();
+  // Note: your spiral center is (cx, cy + r*1.05); parallax uses (cx, cy) anchor which is fine.
+  layerTransform(g, cam, 0, cx, cy);
 
-  // 5) Ribbon (unchanged)
-drawSpiralRibbon(
-  g, this.def,
-  cx, cy + r*1.05, r*0.75,
-  this.phase, this.inhale01(),
-  facing,
-  { moveMag: this.moveMag, align: this.alignment }
-);
 
-  // 6) Witness
+  g.save(); layerTransform(g, cam, +1, cx, cy);
+drawAxisRails(g, cx, cy, r, inh, pal);
+g.restore();
+
+// beacons (z=+3)
+g.save(); layerTransform(g, cam, +3, cx, cy);
+drawBeaconDot(g, cx, cy - r*AXES.beacons.heart.offsetR, r, "heart", inh, pal);
+drawBeaconDot(g, cx + r*AXES.beacons.dreamer.offsetX, cy + r*AXES.beacons.dreamer.offsetY,
+              r, "dreamer", inh, pal);
+drawBeaconDot(g, cx + r*AXES.beacons.mirror.offsetX, cy + r*AXES.beacons.mirror.offsetY,
+              r, "mirror",  inh, pal);
+g.restore();
+  drawSpiralRibbon(
+    g, this.def,
+    cx, cy + r * 1.05, r * 0.75,
+    this.phase, inh,
+    ribbonAngle,
+    undefined, // facing (unused in tableau mode)
+    { moveMag: 0, align: 0 }
+  );
+  g.restore();
+
+  // --- WITNESS (z = +2) – perched "forward" of the spiral
+  g.save();
+  layerTransform(g, cam, +2, cx, cy);
   this.witness.draw(g, cx, cy + r * 1.95, this.phase);
-
+  g.restore();
 }
 
 private drawFacingCues(
@@ -353,6 +401,8 @@ const tailOut = { x: tailIn.x + tvec.x * comet, y: tailIn.y + tvec.y * comet };
     g.beginPath(); g.moveTo(tailIn.x, tailIn.y); g.lineTo(tailOut.x, tailOut.y); g.stroke();
   }
 
+  
+
   g.restore();
 }
 
@@ -367,25 +417,6 @@ const tailOut = { x: tailIn.x + tvec.x * comet, y: tailIn.y + tvec.y * comet };
   // what mount.ts expects
   update(dt: number) {
 
-const fRaw = this.getFacing ? this.getFacing() : { x: 0, y: -1 };
-
-// facing smoothing (~100ms)
-const kF = 1 - Math.exp(-dt * 10);
-this.fSm.x += kF * (fRaw.x - this.fSm.x);
-this.fSm.y += kF * (fRaw.y - this.fSm.y);
-
-// movement magnitude with gentle decay
-const df = Math.hypot(fRaw.x - this.prevFacing.x, fRaw.y - this.prevFacing.y);
-const speed = df / Math.max(1e-3, dt);          // "how fast the vector is changing"
-const target = Math.min(1, speed * 0.02);       // scale to taste
-const kM = 1 - Math.exp(-dt * 6);               // ~160ms envelope
-this.moveMag += kM * (target - this.moveMag);
-this.prevFacing = fRaw;
-
-if ((window as any).__pulseMove) {
-  const t = performance.now() * 0.001;
-  this.moveMag = Math.pow(Math.max(0, Math.sin(t*4)), 2); // 0..1 pulsing
-}
     this.tick(dt);
     this.render();
   }
