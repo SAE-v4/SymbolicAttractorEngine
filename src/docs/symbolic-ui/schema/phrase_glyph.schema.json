@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PhraseGlyph",
+  "type": "object",
+  "required": ["id","title","components","layout"],
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["base_id","role"],
+        "properties": {
+          "base_id": { "type": "string" },
+          "role": { "type": "string" },
+          "transform_hint": { "type": "string" }
+        }
+      }
+    },
+    "layout": { "type": "string", "description": "axis|cluster|pair|spiral|chalice etc." },
+    "breath_dynamic_hint": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "string" }
+  }
+}

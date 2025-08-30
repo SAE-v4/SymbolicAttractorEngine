@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChamberCycle",
+  "type": "object",
+  "required": ["id","order"],
+  "properties": {
+    "id": { "type": "string" },
+    "order": { "type": "array", "items": { "type": "string" } },
+    "narrative_lines": { "type": "object", "additionalProperties": { "type": "string" } }
+  }
+}

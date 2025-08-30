@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BaseGlyph",
+  "type": "object",
+  "required": ["id", "name", "category", "svg_hint"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "category": { "type": "string", "enum": ["point","circle","spiral","line","triangle","heart","droplet","crescent","vesica"] },
+    "svg_hint": { "type": "string", "description": "Short SVG path/note or description for renderer." },
+    "notes": { "type": "string" }
+  }
+}

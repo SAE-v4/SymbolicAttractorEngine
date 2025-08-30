@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DiagramPhrase",
+  "type": "object",
+  "required": ["id","phrase_glyph_id","geometry","breath_dynamic","layers"],
+  "properties": {
+    "id": { "type": "string" },
+    "phrase_glyph_id": { "type": "string" },
+    "geometry": { "type": "string", "description": "Human description of composition." },
+    "breath_dynamic": {
+      "type": "object",
+      "required": ["inhale","exhale","pause"],
+      "properties": {
+        "inhale": { "type": "string" },
+        "exhale": { "type": "string" },
+        "pause": { "type": "string" }
+      }
+    },
+    "layers": { "type": "array", "items": { "type": "string", "enum": ["sky","walls","ground"] } },
+    "seasonal_emphasis": { "type": "array", "items": { "type": "string" } },
+    "interaction_notes": { "type": "string" }
+  }
+}
