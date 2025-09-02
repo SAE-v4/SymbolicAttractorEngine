@@ -1,0 +1,30 @@
+{
+  "version": "0.1",
+  "glyphs": [
+    { "id": "glyph.sun", "svg": "sun", "layer": "sky" },
+    { "id": "glyph.moon", "svg": "moon", "layer": "sky" },
+    { "id": "glyph.dreamer", "svg": "dreamer", "layer": "walls" },
+    { "id": "glyph.witness", "svg": "witness", "layer": "ui" }
+  ],
+  "gestures": [
+    { "id": "gesture.focus.gaze", "input": "pointer", "vector": "facing", "intent": "focus" },
+    { "id": "gesture.offer.breath", "input": "keys", "intent": "breathe" }
+  ],
+  "gestalts": [
+    { "id": "gestalt.illumination", "when": { "sunProximity": "near", "phase": "day" },  "effects": { "auraGain": 0.35, "ringPulse": 0.5 } },
+    { "id": "gestalt.dream-depth",  "when": { "moonProximity": "near", "phase": "night" }, "effects": { "ribbonWeight": 0.6, "shaderFlags": ["depth-glow"] } },
+    { "id": "gestalt.threshold-awareness", "when": { "phase": "dawn" }, "effects": { "ringPulse": 0.25, "shaderFlags": ["edge-glow"] } }
+  ],
+  "phrases": [
+    { "id": "dreamer.illumination", "label": "Dreamer in Light", "glyph": "glyph.dreamer", "gestalts": ["gestalt.illumination"] },
+    { "id": "dreamer.dream-depth",  "label": "Dreamer in Depth", "glyph": "glyph.dreamer", "gestalts": ["gestalt.dream-depth"] },
+    { "id": "witness.threshold",    "label": "Cross the Threshold", "glyph": "glyph.witness", "gestalts": ["gestalt.threshold-awareness"] }
+  ],
+  "chambers": [
+    { "id": "chamber.solarSpiralGate",
+      "allows": ["glyph.sun","glyph.moon","glyph.dreamer","glyph.witness",
+                 "gesture.focus.gaze","gesture.offer.breath",
+                 "gestalt.illumination","gestalt.dream-depth","gestalt.threshold-awareness",
+                 "dreamer.illumination","dreamer.dream-depth","witness.threshold"] }
+  ]
+}
