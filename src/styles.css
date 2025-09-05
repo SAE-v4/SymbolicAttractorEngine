@@ -1,10 +1,4 @@
-/* new */
-html, body { height: 100%; margin: 0; user-select: none; -webkit-user-select: none; -webkit-overflow-scrolling: auto;overflow:hidden; }
-engine-root { display: block; height: 100%; }
-
-/* optional: safer on mobile browser chrome */
-@supports (height: 100dvh) {
-  engine-root { height: 100dvh; }
-}
-
-
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: #0a1428; }
+:root { --safe-bottom: env(safe-area-inset-bottom); }
+engine-root, sae-chamber { display:block; height: 100vh; }
