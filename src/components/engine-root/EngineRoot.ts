@@ -20,7 +20,14 @@ export class EngineRoot extends HTMLElement {
   constructor() { super(); this.attachShadow({ mode: "open" }); }
 
   connectedCallback() {
-    this.style.display = "contents"; // pass layout to children
+   // Give children a real containing block
+  this.style.display = "block";
+  this.style.position = "relative";
+  this.style.width = "100%";
+  this.style.height = "100dvh";  // iOS-safe viewport height
+  (this.style as any).minHeight = "100vh";
+
+  this.attachShadow?.({ mode: "open" });
     this.addEventListener("pointerdown", this.onPointerDown, { passive: false });
     this.addEventListener("pointermove", this.onPointerMove, { passive: false });
     this.addEventListener("pointerup", this.onPointerUp, { passive: false });
