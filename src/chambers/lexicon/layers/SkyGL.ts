@@ -2,6 +2,7 @@ export class SkyGL {
   constructor(private canvas: HTMLCanvasElement) {}
 
   draw(day01: number) {
+//    console.log("draw called")
     const g = this.canvas.getContext("2d")!;
     const { width, height } = this.canvas;
     const grad = g.createLinearGradient(0, 0, 0, height);
@@ -13,6 +14,9 @@ export class SkyGL {
     grad.addColorStop(1, rgb(bot));
     g.fillStyle = grad;
     g.fillRect(0, 0, width, height);
+    g.fillStyle = "rgba(255,255,255,0.08)";
+g.fillRect(10, 10, 40, 20); // debug chip top-left
+
   }
 }
 
