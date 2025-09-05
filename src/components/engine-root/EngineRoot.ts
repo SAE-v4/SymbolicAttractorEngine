@@ -70,7 +70,7 @@ export class EngineRoot extends HTMLElement {
   };
 
   private onTick(time: number, dt: number) {
-    console.log("engine-root onTick")
+   // console.log("engine-root onTick")
     this.clock.tick(dt);
     this.breath.tick(dt);
 

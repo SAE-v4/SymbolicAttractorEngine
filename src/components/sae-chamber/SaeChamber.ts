@@ -10,9 +10,7 @@ type TickEvt = CustomEvent<{
 }>;
 
 export class SaeChamber extends HTMLElement {
-  static get observedAttributes() {
-    return ["chamber"];
-  }
+  static get observedAttributes() { return ["chamber"]; }
   private chamberId = "lexicon";
   private chamber: {
     tick: (detail: TickEvt["detail"]) => void;
@@ -40,10 +38,10 @@ export class SaeChamber extends HTMLElement {
     this.mount();
 
     this.rootEl = this.closest("engine-root");
-    this.rootEl?.addEventListener(
-      "engine-tick",
-      this.onRootTick as EventListener
-    );
+    this.rootEl?.addEventListener("engine-tick", this.onRootTick as EventListener);
+
+    // Desktop key toggle
+    window.addEventListener("keydown", this.onKey);
   }
 
   disconnectedCallback() {
@@ -76,10 +74,17 @@ export class SaeChamber extends HTMLElement {
         }
         .stack { position:relative; width:100%; height:100%; }
         canvas { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+        /* 🔎 HUD hotspot (top-right long-press) */
+        #hud-hit {
+          position:absolute; top:0; right:0; width:56px; height:56px;
+          background: transparent; border: 0; padding: 0; margin: 0;
+          touch-action: none; cursor: default; z-index: 20;
+        }
       </style>
       <div class="stack">
         <canvas id="sky"></canvas>
         <canvas id="ui"></canvas>
+        <button id="hud-hit" aria-label="Toggle HUD"></button>
       </div>
     `;
 
