@@ -27,7 +27,6 @@ export class EngineRoot extends HTMLElement {
   this.style.height = "100dvh";  // iOS-safe viewport height
   (this.style as any).minHeight = "100vh";
 
-  this.attachShadow?.({ mode: "open" });
     this.addEventListener("pointerdown", this.onPointerDown, { passive: false });
     this.addEventListener("pointermove", this.onPointerMove, { passive: false });
     this.addEventListener("pointerup", this.onPointerUp, { passive: false });
