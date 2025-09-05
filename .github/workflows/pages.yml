@@ -2,8 +2,7 @@ name: Deploy (GitHub Pages)
 
 on:
   push:
-    branches:
-      - feature/lexicon-chamber   # <-- switch to main later
+    branches: [ feature/lexicon-chamber ]   # switch to main later
   workflow_dispatch: {}
 
 permissions:
@@ -19,18 +18,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
-      - run: npm ci
-      - run: npm run build -- --base=/SymbolicAttractorEngine/
-      
-      # Build with the correct base path for a project page
-      - name: Build
-        run: pnpm build --base=/SymbolicAttractorEngine/
+      - uses: actions/checkout@v4
 
-      # SPA fallback so deep links work on Pages
-      - name: Create 404.html
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps (ci if lockfile, else install)
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build (Vite project base for GitHub Pages)
+        run: npm run build -- --base=/SymbolicAttractorEngine/
+
+      - name: SPA fallback (404 -> index)
         run: cp dist/index.html dist/404.html
 
       - name: Upload artifact
