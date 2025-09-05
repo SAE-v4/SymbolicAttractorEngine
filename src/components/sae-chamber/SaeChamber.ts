@@ -64,29 +64,32 @@ export class SaeChamber extends HTMLElement {
 
   private mount() {
     this.shadowRoot!.innerHTML = `
-      <style>
-        :host {
-          display:block;
-          position:relative;
-          width:100%;
-          height:100vh;       /* ensure non-zero height immediately */
-          contain: layout paint;
-        }
-        .stack { position:relative; width:100%; height:100%; }
-        canvas { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
-        /* 🔎 HUD hotspot (top-right long-press) */
-        #hud-hit {
-          position:absolute; top:0; right:0; width:56px; height:56px;
-          background: transparent; border: 0; padding: 0; margin: 0;
-          touch-action: none; cursor: default; z-index: 20;
-        }
-      </style>
-      <div class="stack">
-        <canvas id="sky"></canvas>
-        <canvas id="ui"></canvas>
-        <button id="hud-hit" aria-label="Toggle HUD"></button>
-      </div>
-    `;
+  <style>
+    :host {
+      display: block;
+      position: relative;
+      width: 100%;
+      /* pick ONE of these depending on how you size <engine-root> */
+      height: 100%;        /* if <engine-root> has a concrete height */
+      /* height: 100dvh;   // or make the chamber self-sized to viewport */
+      /* min-height: 100vh; */
+      contain: layout paint;
+    }
+    .stack { position: relative; width: 100%; height: 100%; }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    /* 🔎 HUD hotspot (top-right long-press) */
+    #hud-hit {
+      position: absolute; top: 0; right: 0; width: 56px; height: 56px;
+      background: transparent; border: 0; padding: 0; margin: 0;
+      touch-action: none; cursor: default; z-index: 20;
+    }
+  </style>
+  <div class="stack">
+    <canvas id="sky"></canvas>
+    <canvas id="ui"></canvas>
+    <button id="hud-hit" aria-label="Toggle HUD"></button>
+  </div>
+`;
 
     this.skyCanvas = this.shadowRoot!.getElementById("sky") as HTMLCanvasElement;
     this.uiCanvas  = this.shadowRoot!.getElementById("ui")  as HTMLCanvasElement;
