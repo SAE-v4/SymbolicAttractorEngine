@@ -1,0 +1,4 @@
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: #0a1428; }
+:root { --safe-bottom: env(safe-area-inset-bottom); }
+engine-root, sae-chamber { display:block; height: 100vh; }
