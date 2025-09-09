@@ -42,6 +42,10 @@ export class LexiconChamber {
     this.skyLayer.draw(day01);
     const phrases = getVocab().phrases ?? [];
     this.uiLayer.draw(phrases, detail.breath.value, detail.gaze);
+
+    
+    
+
   }
 
   private onResize() {
