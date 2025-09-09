@@ -1,0 +1,65 @@
+{
+  "version": "0.1",
+  "glyphs": [
+    { "id": "glyph.sun", "svg": "sun", "layer": "sky" },
+    { "id": "glyph.moon", "svg": "moon", "layer": "sky" },
+    { "id": "glyph.dreamer", "svg": "dreamer", "layer": "walls" },
+    { "id": "glyph.witness", "svg": "witness", "layer": "ui" },
+    { "id": "glyph.flower", "svg": "flower", "layer": "ui" }
+  ],
+  "phrases": [
+    {
+      "id": "p.spring_flower",
+      "label": "Spring blooms a flower",
+      "glyph": "glyph.flower",
+      "gestalts": ["gestalt.illumination"]
+    },
+    {
+      "id": "p.night_seed",
+      "label": "Night hushes the seed",
+      "glyph": "glyph.dreamer",
+      "gestalts": ["gestalt.dream-depth"]
+    },
+    {
+      "id": "p.leaf_of_light",
+      "label": "Leaf of light",
+      "glyph": "glyph.dreamer",
+      "gestalts": ["gestalt.threshold-awareness"]
+    }
+  ],
+  "gestalts": [
+    {
+      "id": "gestalt.illumination",
+      "when": { "phase": "day" },
+      "effects": { "auraGain": 0.35, "ringPulse": 0.4 }
+    },
+    {
+      "id": "gestalt.dream-depth",
+      "when": { "phase": "night" },
+      "effects": { "ribbonWeight": 0.6, "shaderFlags": ["depth-glow"] }
+    },
+    {
+      "id": "gestalt.threshold-awareness",
+      "when": { "phase": "dawn" },
+      "effects": { "ringPulse": 0.2, "shaderFlags": ["edge-glow"] }
+    }
+  ],
+  "chambers": [
+    {
+      "id": "chamber.lexicon",
+      "allows": [
+        "glyph.sun",
+        "glyph.moon",
+        "glyph.dreamer",
+        "glyph.witness",
+        "glyph.flower",
+        "p.spring_flower",
+        "p.night_seed",
+        "p.leaf_of_light",
+        "gestalt.illumination",
+        "gestalt.dream-depth",
+        "gestalt.threshold-awareness"
+      ]
+    }
+  ]
+}

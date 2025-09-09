@@ -4,13 +4,16 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
     />
     <title>SAE v4 — Demo</title>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
+  <!-- index.html -->
   <body>
-    <engine-root ch="solar-spiral-gate" debug></engine-root>
+    <engine-root breath-mode="auto" breath-bpm="6">
+      <sae-chamber></sae-chamber>
+    </engine-root>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
