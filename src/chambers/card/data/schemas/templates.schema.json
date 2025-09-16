@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "templates.schema.json",
+  "title": "TemplateCatalog",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "pattern",
+      "placeholders"
+    ],
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "pattern": {
+        "type": "string",
+        "minLength": 1
+      },
+      "placeholders": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "enum": [
+            "glyph",
+            "token"
+          ]
+        }
+      },
+      "axisBias": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "Light": {
+            "type": "number"
+          },
+          "Warmth": {
+            "type": "number"
+          },
+          "Heart": {
+            "type": "number"
+          },
+          "Flame": {
+            "type": "number"
+          },
+          "Inhale": {
+            "type": "number"
+          },
+          "Scale": {
+            "type": "number"
+          },
+          "Witness": {
+            "type": "number"
+          }
+        }
+      },
+      "phase": {
+        "type": "array",
+        "items": {
+          "enum": [
+            "inhale",
+            "pause",
+            "exhale"
+          ]
+        },
+        "uniqueItems": true
+      },
+      "outcome": {
+        "type": "array",
+        "items": {
+          "enum": [
+            "accept",
+            "harmonic"
+          ]
+        },
+        "uniqueItems": true
+      },
+      "weight": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "versions.schema.json",
+  "title": "Content Versions",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "contentVersion",
+    "date"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "contentVersion": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "additionalProperties": false
+}

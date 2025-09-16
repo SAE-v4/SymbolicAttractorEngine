@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "being.schema.json",
+  "title": "BeingSpec",
+  "type": "object",
+  "$defs": {
+    "Vec7": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "number"
+      },
+      "description": "Vec7 = [Light, Warmth, Heart, Flame, Inhale, Scale, Witness]"
+    },
+    "ColorKey": {
+      "enum": [
+        "light",
+        "shadow",
+        "warmth",
+        "coolness",
+        "heart",
+        "spirit",
+        "flame",
+        "offering",
+        "witness"
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "vec",
+    "thresholds",
+    "palette"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vec": {
+      "$ref": "#/$defs/Vec7"
+    },
+    "phaseWeights": {
+      "type": "object",
+      "properties": {
+        "inhale": {
+          "type": "number"
+        },
+        "pause": {
+          "type": "number"
+        },
+        "exhale": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "thresholds": {
+      "type": "object",
+      "required": [
+        "accept",
+        "harmonic"
+      ],
+      "properties": {
+        "accept": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "harmonic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "description": "accept < harmonic",
+          "if": {
+            "properties": {
+              "accept": {
+                "type": "number"
+              },
+              "harmonic": {
+                "type": "number"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "harmonic": {
+                "exclusiveMinimum": {
+                  "$data": "1/accept"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "palette": {
+      "type": "object",
+      "properties": {
+        "aura": {
+          "$ref": "#/$defs/ColorKey"
+        },
+        "crown": {
+          "$ref": "#/$defs/ColorKey"
+        }
+      },
+      "required": [
+        "aura"
+      ],
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}
