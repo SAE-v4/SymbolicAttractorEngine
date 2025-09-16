@@ -1,87 +1,50 @@
-# SAE — Card Layout Chamber Vertical Slice Spec
+# Card Chamber Docs
 
-## 🎯 Purpose
+> Directory: `src/docs/chambers/card/`
 
-A vertical slice that demonstrates the Symbolic Attractor Engine’s core principles through a card-like chamber view:
-	•	Chamber Being is presented in a symbolic card layout.
-	•	Glyphs cycle in a focus vessel, modulated by breath rhythm.
-	•	User gestures (spiral, zigzag, tap-hold) influence the glyph cycle and create moments of harmonic coherence.
-	•	Dialogue emerges via glyphs, witness radar arcs, and sparing English word phrases.
+This folder collects **all documentation** for the Card‑layout chamber implementation.
 
-This slice should feel like a miniature but complete experience of symbolic play.
+## Quick Links
 
+- **Vertical Slice Spec** → [CardLayoutChamber.md](./CardLayoutChamber.md)  
+  A goal‑oriented spec for the playable vertical slice.
 
-## 🏛 Architecture
+- **SemanticField Reference** → [SemanticField.md](./SemanticField.md)  
+  The **Semantic Field** is the symbolic substrate of the Card chamber.
 
-### Chamber Structure
-	•	Card Layout Chamber
-	•	One chamber being displayed (Heart/Spirit, Light/Shadow, etc.).
-	•	Witness radar arcs in the walls layer echo coherence.
-	•	Glyph focus vessel in the UI layer cycles rhythmically.
+- **Glyph Reference** → [CardLayoutGlyphs.md](./CardLayoutGlyphs.md)  
+  Detailed glyph model (types, states, vectors, interactions, rendering).
 
-### Layers (render order)
-	1.	Sky: optional; gradient background (GL or flat color for slice).
-	2.	Walls: concentric arcs, radar effects, occasional word glyphs.
-	3.	Ground: optional — may pulse faint glyph shadows.
-	4.	UI: card layout (being + focus vessel + dialogue).
+- **FocusVessel Reference** → [FocusVessel.md](./FocusVessel.md)  
+  **FocusVessel** is the chamber’s *active cursor* and *breath‑synchronized selector*.
 
+- **GestureEngine Reference** → [GestureEngine.md](./GestureEngine.md)  
+  The **GestureEngine** consumes raw pointer traces (mouse/touch) and classifies them into symbolic intents.
 
-## 🧩 Components
+- **PhraseTemplates Reference** → [PhraseTemplates.md](./PhraseTemplates.md)
+  The **PhraseTemplates** system defines how **tokens** (words) and **glyphs** combine into short, symbolic English phrases.
 
-### Core
-	•	engine-root → engine loop, clock, breath runtime.
-	•	sae-chamber → mounts a chamber view.
-	•	ChamberSystem → orchestrates layers, breath, field.
+- **DialogueSystem Reference** → [DialogueSystem.md](./DialogueSystem.md)
+  The **DialogueSystem** is responsible for **emitting text phrases** in the Card chamber.
 
-### Chamber Being
-	•	Rendered in SVG (animated via breath).
-	•	Each being = unique configuration of base glyphs + color palette.
-	•	Response logic:
-	•	Idle → cycles small gestures (subtle nod).
-	•	When offered a glyph → generates response arcs or new glyphs.
+- **SeedPhraseOverlay Reference** → [SeedPhraseOverlay.md](./SeedPhraseOverlay.md)
+  **SeedPhraseOverlay** renders short, ephemeral phrases produced by the [DialogueSystem](./DialogueSystem.md).
 
-### Glyphs
-	•	Base set for slice: Heart ❤️, Spiral 🌀, Flame 🔥.
-	•	Stored in src/data/base_glyphs.json.
-	•	Rendered in SVG (renderGlyph(id, size)), animated by breath.
+- **LoreArchiveVie Reference** → [LoreArchiveVie.md](./LoreArchiveVie.md)
+  **LoreArchiveView** is a lightweight, persistent list of phrases emitted during a session.
+  
+- **CoherenceEngine Reference** → [CoherenceEngine.md](./CoherenceEngine.md)  
+  **CoherenceEngine** composes symbolic vectors (glyphs, vessel cycle, and being) and evaluates **coherence** for outcomes (reject/accept/harmonic).
 
-### Focus Vessel
-	•	UI element: single glyph at center of vessel.
-	•	By default: cycles glyphs with inhale/exhale.
-	•	User gestures can accelerate, reverse, or hold cycle.
+## Roadmap: Additional Docs (to be added)
 
-### Gesture Controls
-	•	Spiral: accelerate cycle.
-	•	Zigzag: reverse cycle.
-	•	Tap+hold: Heart gesture.
-	•	Gestures modulate focus glyph + can trigger harmonic coherence.
+- **BeingAura.md** — chest locus + aura behaviors (breath & outcomes)  
+- **WitnessRadar.md** — rings, echoes, ripples, coherence nods  
+- **Palette.md** — color keys + breath modulation mapping  
+- **AudioEngine.md** — stubs & contracts for breath pad / offer / receive / harmonic   
+- **BreathBindings.md** — breath → anim & envelope bindings   
+- **CardState.md** — FSM (idle → dragging → resolving → cooldown)  
+- **Renderers.md** — SvgSprite/SvgGlyph/CanvasRadar contracts  
+- **Data.md** — beings, glyphs, templates, lexicon schema notes
 
-### Dialogue
-	•	Glyphs on radar arcs = being’s response.
-	•	English words appear sparingly in arcs or card borders.
-	•	Example: “summer” and “winter” surfacing during Light/Shadow alignment.
-
-### 📂 Directory Scaffold
-
-'''
-src/
-  chambers/
-    cardLayout/
-      CardLayoutChamber.ts      // main chamber entry
-      components/
-        ChamberBeing.ts         // renders one being (SVG)
-        FocusVessel.ts          // renders and cycles glyphs
-        WitnessRadar.ts         // arcs + response glyphs
-      systems/
-        GestureSystem.ts        // handles spiral/zigzag/hold input
-        DialogueSystem.ts       // maps interactions to glyph/word output
-      index.ts
-      mount.ts
-  data/
-    base_glyphs.json            // already present
-    phrase_glyphs.json
-    chamber_beings.json         // configs per being (axes, palette, glyphs)
-  docs/
-    chambers/
-      CardLayoutChamber.md      // this spec, evolving into doc
-'''
+> Tip: Keep this index short and let each sub‑page stand alone with a “Back to index” link to this README.
