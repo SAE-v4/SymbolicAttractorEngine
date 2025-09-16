@@ -1,0 +1,49 @@
+[
+  {
+    "id": "gift-of-x",
+    "pattern": "Gift of {glyph}",
+    "placeholders": [
+      "glyph"
+    ],
+    "phase": [
+      "inhale",
+      "exhale"
+    ],
+    "outcome": [
+      "accept",
+      "harmonic"
+    ],
+    "weight": 1
+  },
+  {
+    "id": "x-within-y",
+    "pattern": "{glyph} within {token}",
+    "placeholders": [
+      "glyph",
+      "token"
+    ],
+    "phase": [
+      "exhale",
+      "pause"
+    ],
+    "outcome": [
+      "accept",
+      "harmonic"
+    ],
+    "weight": 1
+  },
+  {
+    "id": "crown-of-x",
+    "pattern": "The Crown of {token}",
+    "placeholders": [
+      "token"
+    ],
+    "phase": [
+      "pause"
+    ],
+    "outcome": [
+      "harmonic"
+    ],
+    "weight": 1
+  }
+]
