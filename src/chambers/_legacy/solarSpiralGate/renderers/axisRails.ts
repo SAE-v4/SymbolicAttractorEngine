@@ -1,5 +1,5 @@
 // src/renderers/axisRails.ts
-import { PAL } from "@/config/palette";
+import { PAL } from "@/chambers/_legacy/solarSpiralGate/config/palette";
 
 export function drawAxisRails(
   g: CanvasRenderingContext2D,

@@ -1,5 +1,5 @@
 import type { ChamberSystem, ChamberCtx } from "@engine/ChamberSystem"
-import { createGateFlash, triggerGateFlash, updateGateFlash, gateFlashAlpha } from "@systems/gate/gateFlash"
+import { createGateFlash, triggerGateFlash, updateGateFlash, gateFlashAlpha } from "@/systems/_legacy/gate/gateFlash"
 
 export function createGateAuraSystem(): ChamberSystem {
   const flash = createGateFlash();

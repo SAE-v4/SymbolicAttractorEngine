@@ -1,4 +1,4 @@
-import type { BreathState } from "@systems/breath/BreathRuntime";
+import type { BreathState } from "@/systems/_legacy/breath/BreathRuntime";
 
 export interface ChamberCtx {
   g: CanvasRenderingContext2D;  // scene ctx

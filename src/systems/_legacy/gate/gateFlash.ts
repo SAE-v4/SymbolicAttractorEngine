@@ -1,5 +1,5 @@
 // systems/gate/gateFlash.ts
-import { PAL } from "@/config/palette";
+import { PAL } from "@/chambers/_legacy/solarSpiralGate/config/palette";
 import type { ChamberDef } from "@/types/ChamberDefs";
 
 export class GateFlash {

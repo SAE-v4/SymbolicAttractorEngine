@@ -1,6 +1,6 @@
 import type { ChamberMountOpts } from '@types/Chamber';
-import { BreathRuntime, type BreathConfig } from '@systems/breath/BreathRuntime';
-import { SkyGLRenderer } from '@renderers/skygl/skyGLRenderer';
+import { BreathRuntime, type BreathConfig } from '@/systems/_legacy/breath/BreathRuntime';
+import { SkyGLRenderer } from '@/chambers/_legacy/solarSpiralGate/renderers/skygl/skyGLRenderer';
 import { breathPalette } from '@/color/breathPalette';
 import { LUNAR_INDIGO } from '@/color/profiles';
 // If you have a GateAuraSystem, import it here:

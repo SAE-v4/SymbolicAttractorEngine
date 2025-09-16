@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lexicon.schema.json",
+  "title": "Lexicon",
+  "type": "array",
+  "$defs": {
+    "Vec7": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "number"
+      },
+      "description": "Vec7 = [Light, Warmth, Heart, Flame, Inhale, Scale, Witness]"
+    }
+  },
+  "items": {
+    "type": "object",
+    "required": [
+      "word",
+      "vec"
+    ],
+    "properties": {
+      "word": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[A-Za-z][A-Za-z\\- ]*$"
+      },
+      "vec": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/Vec7"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 1,
+            "maxItems": 7
+          }
+        ]
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "uniqueItems": true
+      },
+      "weight": {
+        "type": "number",
+        "minimum": 0
+      }
+    },
+    "additionalProperties": false
+  }
+}

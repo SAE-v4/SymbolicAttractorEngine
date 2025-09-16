@@ -1,6 +1,6 @@
 // src/renderers/beeAvatar.ts
 import type { ChamberDef } from "@/types/ChamberDefs";
-import { PAL } from "@/config/palette";
+import { PAL } from "@/chambers/_legacy/solarSpiralGate/config/palette";
 
 export type BeeAvatarOpts = {
   radius?: number;                 // default 16 (px in screen space)

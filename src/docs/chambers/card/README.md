@@ -6,9 +6,6 @@ This folder collects **all documentation** for the Card‑layout chamber impleme
 
 ## Quick Links
 
-- **Vertical Slice Spec** → [CardLayoutChamber.md](./CardLayoutChamber.md)  
-  A goal‑oriented spec for the playable vertical slice.
-
 - **SemanticField Reference** → [SemanticField.md](./SemanticField.md)  
   The **Semantic Field** is the symbolic substrate of the Card chamber.
 
@@ -30,21 +27,39 @@ This folder collects **all documentation** for the Card‑layout chamber impleme
 - **SeedPhraseOverlay Reference** → [SeedPhraseOverlay.md](./SeedPhraseOverlay.md)
   **SeedPhraseOverlay** renders short, ephemeral phrases produced by the [DialogueSystem](./DialogueSystem.md).
 
-- **LoreArchiveVie Reference** → [LoreArchiveVie.md](./LoreArchiveVie.md)
+- **LoreArchiveView Reference** → [LoreArchiveView.md](./LoreArchiveView.md)
   **LoreArchiveView** is a lightweight, persistent list of phrases emitted during a session.
   
 - **CoherenceEngine Reference** → [CoherenceEngine.md](./CoherenceEngine.md)  
   **CoherenceEngine** composes symbolic vectors (glyphs, vessel cycle, and being) and evaluates **coherence** for outcomes (reject/accept/harmonic).
 
+- **BeingAura Reference** → [BeingAura.md](./BeingAura.md)  
+  **BeingAura** is the **chest locus** and responsive glow of the chamber being.
+
+- **WitnessRadar Reference** → [WitnessRadar.md](./WitnessRadar.md)  
+  **WitnessRadar** visualises **coherence** and **stillness** as concentric arcs/rings in the walls layer. 
+
+- **Renderers Reference** → [Renderers.md](./Renderers.md) 
+  The **rendering contracts** used by the Card chamber
+
+- **Palette Reference** → [Palette.md](./Palette.md)
+  The **Palette** provides cohesive color keys across layers (background, aura, radar, glyphs, text) and exposes **breath‑aware** modulation helpers.
+
+- **BreathBindings Reference** → [BreathBindings.md](./BreathBindings.md)
+  Defines a small set of reusable curves to keep the chamber coherent and tunable.
+
+- **CardState Reference** → [CardState.md](./CardState.md)
+  **CardState** defines a minimal, testable **finite state machine** that coordinates user interaction and chamber reactions
+
+
+- **Data Reference** → [Data.md](./Data.md)
+  The **data layer** for the Card chamber
+
+- **Vertical Slice Spec** → [CardLayoutChamber.md](./CardLayoutChamber.md)  
+  A goal‑oriented spec for the playable vertical slice.
+
 ## Roadmap: Additional Docs (to be added)
 
-- **BeingAura.md** — chest locus + aura behaviors (breath & outcomes)  
-- **WitnessRadar.md** — rings, echoes, ripples, coherence nods  
-- **Palette.md** — color keys + breath modulation mapping  
 - **AudioEngine.md** — stubs & contracts for breath pad / offer / receive / harmonic   
-- **BreathBindings.md** — breath → anim & envelope bindings   
-- **CardState.md** — FSM (idle → dragging → resolving → cooldown)  
-- **Renderers.md** — SvgSprite/SvgGlyph/CanvasRadar contracts  
 - **Data.md** — beings, glyphs, templates, lexicon schema notes
 
-> Tip: Keep this index short and let each sub‑page stand alone with a “Back to index” link to this README.

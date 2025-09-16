@@ -1,18 +1,18 @@
 // src/chambers/solarSpiralGate/SolarSpiralGateChamber.ts
 import type { ChamberDef } from "@/types/ChamberDefs";
-import { drawGateRings } from "@/renderers/gateRings";
+import { drawGateRings } from "@/chambers/_legacy/solarSpiralGate/renderers/gateRings";
 //import { drawSpiralRiver } from "@/renderers/spiralRenderer";
-import { drawSpiralRibbon } from "@/renderers/spiralRibbon";
+import { drawSpiralRibbon } from "@/chambers/_legacy/solarSpiralGate/renderers/spiralRibbon";
 import type { Vec2 } from "@/types/Core";
-import { WitnessVisual } from "@/systems/witnessVisual";
-import { GateFlash } from "@systems/gate";
-import { drawSolarCoreGlow } from "@renderers/solarCoreGlow";
-import { PAL } from "@config/palette";
-import { AXES } from "@config/axes";
-import { drawAxisRails } from "@/renderers/axisRails";
-import { drawBeaconDot } from "@renderers/beacons";
-import { camFromBreath, layerTransform } from "@/systems/parallaxCamera";
-import { drawGateThroat } from "@/renderers/gateThroat";
+import { WitnessVisual } from "@/systems/_legacy/witnessVisual";
+import { GateFlash } from "@/systems/_legacy/gate";
+import { drawSolarCoreGlow } from "@/chambers/_legacy/solarSpiralGate/renderers/solarCoreGlow";
+import { PAL } from "@/chambers/_legacy/solarSpiralGate/config/palette";
+import { AXES } from "@/chambers/_legacy/solarSpiralGate/config/axes";
+import { drawAxisRails } from "@/chambers/_legacy/solarSpiralGate/renderers/axisRails";
+import { drawBeaconDot } from "@/chambers/_legacy/solarSpiralGate/renderers/beacons";
+import { camFromBreath, layerTransform } from "@/systems/_legacy/parallaxCamera";
+import { drawGateThroat } from "@/chambers/_legacy/solarSpiralGate/renderers/gateThroat";
 // (optional) remove beeAvatar import if unused
 // import { drawBeeAvatar } from "@/renderers/beeAvatar";
 const TWO_PI = Math.PI * 2;

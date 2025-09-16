@@ -1,5 +1,5 @@
 // renderers/gateRings.ts
-import { PAL } from "@config/palette";
+import { PAL } from "@/chambers/_legacy/solarSpiralGate/config/palette";
 import type { ChamberDef } from "@types/ChamberDef";
 
 // renderers/gateRings.ts

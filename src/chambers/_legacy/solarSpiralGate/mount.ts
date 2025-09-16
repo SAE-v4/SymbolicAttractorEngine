@@ -1,10 +1,10 @@
 // src/chambers/solarSpiralGate/mount.ts
 import type { ChamberMountOpts } from "@types/Chamber";
-import { BreathRuntime, type BreathConfig } from "@systems/breath/BreathRuntime";
-import { SkyGLRenderer } from "@renderers/skygl/skyGLRenderer";
-import { SceneCanvas } from "@chambers/solarSpiralGate/spiral/SceneCanvas";
+import { BreathRuntime, type BreathConfig } from "@/systems/_legacy/breath/BreathRuntime";
+import { SkyGLRenderer } from "@/chambers/_legacy/solarSpiralGate/renderers/skygl/skyGLRenderer";
+import { SceneCanvas } from "@chambers/_legacy/solarSpiralGate/spiral/SceneCanvas";
 import { SolarSpiralGateChamber } from "./SolarSpiralGateChamber";
-import { Presets, installPresetGlobals, applySkyPreset, attachHotSwap } from "@/presets/presets";
+import { Presets, installPresetGlobals, applySkyPreset, attachHotSwap } from "@/chambers/_legacy/solarSpiralGate/presets/presets";
 
 // pick preset (optionally via query ?preset=snug_demo)
 const key = new URLSearchParams(location.search).get("preset") || "default_2025_08_24";

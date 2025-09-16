@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "theme.schema.json",
+  "title": "PaletteTheme",
+  "type": "object",
+  "required": [
+    "id",
+    "entries",
+    "bg",
+    "walls"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "base": {
+            "type": "object",
+            "properties": {
+              "l": {
+                "type": "number"
+              },
+              "c": {
+                "type": "number"
+              },
+              "h": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "l",
+              "c",
+              "h"
+            ],
+            "additionalProperties": false
+          },
+          "text": {
+            "type": "object",
+            "properties": {
+              "l": {
+                "type": "number"
+              },
+              "c": {
+                "type": "number"
+              },
+              "h": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "l",
+              "c",
+              "h"
+            ],
+            "additionalProperties": false
+          },
+          "weak": {
+            "type": "object",
+            "properties": {
+              "l": {
+                "type": "number"
+              },
+              "c": {
+                "type": "number"
+              },
+              "h": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          },
+          "strong": {
+            "type": "object",
+            "properties": {
+              "l": {
+                "type": "number"
+              },
+              "c": {
+                "type": "number"
+              },
+              "h": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "base",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "bg": {
+      "type": "object",
+      "properties": {
+        "l": {
+          "type": "number"
+        },
+        "c": {
+          "type": "number"
+        },
+        "h": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "l",
+        "c",
+        "h"
+      ]
+    },
+    "walls": {
+      "type": "object",
+      "properties": {
+        "l": {
+          "type": "number"
+        },
+        "c": {
+          "type": "number"
+        },
+        "h": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "l",
+        "c",
+        "h"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

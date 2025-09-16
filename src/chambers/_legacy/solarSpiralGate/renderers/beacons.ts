@@ -1,5 +1,5 @@
 // src/renderers/beacons.ts
-import { PAL } from "@/config/palette";
+import { PAL } from "@/chambers/_legacy/solarSpiralGate/config/palette";
 
 export function drawBeaconDot(
   g: CanvasRenderingContext2D,

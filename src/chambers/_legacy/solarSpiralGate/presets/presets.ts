@@ -1,7 +1,7 @@
 // src/presets/presets.ts
 import type { ChamberDef } from "@/types/ChamberDefs";
-import { DEFAULT_SOLAR_SPIRAL_DEF as BASE } from "@/chambers/solarSpiralGate/SolarSpiralGateChamber";
-import type { SkyGLRenderer } from "@/renderers/skygl/skyGLRenderer";
+import { DEFAULT_SOLAR_SPIRAL_DEF as BASE } from "@/chambers/_legacy/solarSpiralGate/SolarSpiralGateChamber";
+import type { SkyGLRenderer } from "@/chambers/_legacy/solarSpiralGate/renderers/skygl/skyGLRenderer";
 
 export type SkyPreset = {
   colors: {
