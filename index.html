@@ -10,12 +10,19 @@
 
 <body>
 <engine-root breath-mode="auto" breath-bpm="6">
-  <sae-card-chamber>
+  <!-- <sae-card-chamber>
     <sae-card-bg slot="bg" key="witness"></sae-card-bg>
     <sae-being-aura slot="aura"></sae-being-aura>
     <sae-witness-radar slot="radar"></sae-witness-radar>
     <sae-focus-vessel slot="vessel" glyph="heart"></sae-focus-vessel>
-  </sae-card-chamber>
+  </sae-card-chamber> -->
+
+  <!-- Field overview -->
+<sae-field-chamber>
+     <sae-field-bg slot="bg"></sae-field-bg>
+     <sae-gesture-layer slot="ground"></sae-gesture-layer>
+     <sae-field-witness slot="walls"></sae-field-witness>
+   </sae-field-chamber>
 </engine-root>
   <script type="module" src="/src/main.ts"></script>
 </body>
