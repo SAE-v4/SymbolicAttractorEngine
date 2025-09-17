@@ -1,11 +1,5 @@
-
-import '@/app/engine-root';
-
-
-(window as any).__occOn = true; // press 'o' to toggle
-window.addEventListener('keydown', e => {
-  if (e.key.toLowerCase()==='o'){ (window as any).__occOn = !(window as any).__occOn; }
-});
+import "@/app/engine-root";
+import "@/chambers/card"; // this file should define & register <sae-card-chamber>
 
 
 
