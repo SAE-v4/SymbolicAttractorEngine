@@ -1,3 +1,6 @@
-import { solarSpiralGate } from '@/chambers/_legacy/solarSpiralGate';
-import { lunarTideGate } from '@/chambers/_legacy/lunarTideGate';
-export const CHAMBERS = [solarSpiralGate, lunarTideGate];
+import { registerCardChamber } from "./card";
+export type ChamberKind = "card" | "solarSpiralGate"; // keep legacy on main
+export function registerChambers(kind: ChamberKind) {
+  if (kind === "card") registerCardChamber();
+  // legacy hook stays as-is
+}

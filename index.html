@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
-    />
-    <title>SAE v4 — Demo</title>
-    <link rel="stylesheet" href="/src/styles.css" />
-  </head>
-  <body>
-    <engine-root ch="solar-spiral-gate" debug></engine-root>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>SAE v4 — Demo</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+
+<body>
+  <engine-root breath-mode="auto" breath-bpm="6">
+    <sae-card-chamber></sae-card-chamber>
+  </engine-root>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
