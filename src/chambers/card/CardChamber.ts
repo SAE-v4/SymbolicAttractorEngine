@@ -1,4 +1,4 @@
-// src/chambers/card/components/CardLayoutChamber.ts
+// src/chambers/card/CardChamber.ts
 import type { EngineTick, BreathPhase } from "@/types/Core";
 
 type LocalBreath = {
@@ -9,7 +9,7 @@ type LocalBreath = {
   tGlobal: number;
 };
 
-export class CardLayoutChamberEl extends HTMLElement {
+export class CardChamberEl extends HTMLElement {
   // Refs (fallbacks only; slotted nodes are discovered via slots)
   private bg!: HTMLDivElement;
   private auraFallback!: HTMLDivElement | null;
