@@ -1,0 +1,29 @@
+[
+  {
+    "when": {
+      "outcome": "accept"
+    },
+    "emit": [
+      {
+        "kind": "aura-radar",
+        "ring": 2,
+        "life": 900
+      }
+    ]
+  },
+  {
+    "when": {
+      "outcome": "harmonic"
+    },
+    "emit": [
+      {
+        "kind": "harmonic-cross",
+        "intensity": 1.0
+      },
+      {
+        "kind": "crown-corona",
+        "rayCount": 16
+      }
+    ]
+  }
+]

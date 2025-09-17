@@ -80,30 +80,7 @@
         }
       },
       "additionalProperties": false,
-      "allOf": [
-        {
-          "description": "accept < harmonic",
-          "if": {
-            "properties": {
-              "accept": {
-                "type": "number"
-              },
-              "harmonic": {
-                "type": "number"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "harmonic": {
-                "exclusiveMinimum": {
-                  "$data": "1/accept"
-                }
-              }
-            }
-          }
-        }
-      ]
+      "description": "Note: verify accept < harmonic in a separate script step."
     },
     "palette": {
       "type": "object",

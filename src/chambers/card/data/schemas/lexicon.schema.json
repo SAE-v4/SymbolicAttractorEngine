@@ -27,7 +27,7 @@
         "pattern": "^[A-Za-z][A-Za-z\\- ]*$"
       },
       "vec": {
-        "oneOf": [
+        "anyOf": [
           {
             "$ref": "#/$defs/Vec7"
           },
@@ -37,7 +37,7 @@
               "type": "number"
             },
             "minItems": 1,
-            "maxItems": 7
+            "maxItems": 6
           }
         ]
       },

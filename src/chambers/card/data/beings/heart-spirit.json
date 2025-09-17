@@ -1,0 +1,27 @@
+{
+  "id": "heartSpirit",
+  "title": "Heart / Spirit",
+  "vec": [
+    0.1,
+    0.1,
+    0.9,
+    0.2,
+    0.3,
+    0.0,
+    0.5
+  ],
+  "phaseWeights": {
+    "inhale": 1.0,
+    "pause": 0.7,
+    "exhale": 0.4
+  },
+  "thresholds": {
+    "accept": 0.72,
+    "harmonic": 0.86
+  },
+  "palette": {
+    "aura": "heart",
+    "crown": "spirit"
+  },
+  "notes": "Seed being for the vertical slice."
+}
