@@ -28,8 +28,8 @@ export class FieldChamberEl extends HTMLElement {
         <div class="layer">
           <slot name="bg"><sae-field-bg></sae-field-bg></slot>
         </div>
-        <div class="layer">
-          <slot name="ground"><sae-gesture-layer></sae-gesture-layer></slot>
+        <div class="layer input">
+          <sae-gesture-layer id="gestures"></sae-gesture-layer>
         </div>
         <div class="layer">
           <slot name="walls"><sae-field-witness></sae-field-witness></slot>
@@ -44,6 +44,26 @@ export class FieldChamberEl extends HTMLElement {
     `;
 
     this.addEventListener("engine-tick" as any, this.onEngineTick as any);
+
+    // inside FieldChamber connectedCallback():
+    const gestures = this.shadowRoot!.getElementById("gestures")!;
+    gestures.addEventListener("gesture:intent", (e: any) => {
+      console.log("gesture intent")
+      const g = e.detail as import("@/types/Gesture").GestureIntent;
+      // quick demo reactions:
+      if (g.kind === "spiral") {
+        // accelerate focus cycle, send ripple to radar, etc.
+        console.log("SPIRAL")
+        this.dispatchEvent(new CustomEvent("field:gesture-spiral", { detail: g, bubbles: true, composed: true }));
+      } else if (g.kind === "zigzag") {
+        console.log("zigzag")
+        this.dispatchEvent(new CustomEvent("field:gesture-zigzag", { detail: g, bubbles: true, composed: true }));
+      } else if (g.kind === "tap-hold") {
+        console.log("tap-hold")
+        this.dispatchEvent(new CustomEvent("field:gesture-heart", { detail: g, bubbles: true, composed: true }));
+      }
+    });
+
   }
 
   disconnectedCallback() {
@@ -71,7 +91,7 @@ export class FieldChamberEl extends HTMLElement {
       if (anyEl && typeof anyEl.applyBreath === "function") anyEl.applyBreath(b);
     };
     // bg / ground / walls / sky / ui
-    ["bg","ground","walls","sky","ui"].forEach(name => {
+    ["bg", "ground", "walls", "sky", "ui"].forEach(name => {
       const s = this.shadowRoot!.querySelector(`slot[name="${name}"]`) as HTMLSlotElement | null;
       s?.assignedElements().forEach(callApply);
     });

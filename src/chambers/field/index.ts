@@ -1,5 +1,6 @@
 import { FieldChamberEl }   from "./FieldChamber";
-import { GestureLayerEl }   from "./components/GestureLayer";
+//import { GestureLayerEl }   from "./components/GestureLayer";
+import { GestureLayerEl } from "@/components/gesture/GestureLayer";
 import { FieldBGEl }        from "./components/FieldBG";
 import { FieldWitnessEl }   from "./components/FieldWitness";
 

@@ -65,11 +65,10 @@ export class CardChamberEl extends HTMLElement {
     </div>
 
     <div class="layer">
-      <slot name="overlay">
-        <!-- Fallback overlay (empty) -->
-        <div id="overlay"></div>
-      </slot>
-    </div>
+    <slot name="overlay">
+      <sae-gesture-layer></sae-gesture-layer>
+    </slot>
+  </div>
 
     <div id="archive">
       <slot name="archive">(archive)</slot>
