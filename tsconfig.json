@@ -21,8 +21,8 @@
       "@modulation/*": ["modulation/*"],
       "@types/*": ["types/*"],
       "@renderers/*": ["renderers/*"],
-      "@chambers/*": ["chambers/*"]
-
+      "@chambers/*": ["chambers/*"],
+      "@gesture/*": ["src/systems/gesture/*"]
     }
   },
   "include": ["src", "vite.config.ts"]
