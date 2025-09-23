@@ -1,16 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
-    />
-    <title>SAE v4 — Demo</title>
-    <link rel="stylesheet" href="/src/styles.css" />
-  </head>
-  <body>
-    <engine-root ch="solar-spiral-gate" debug></engine-root>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>SAE v4 — Demo</title>
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+
+<body>
+  <engine-root breath-mode="auto" breath-bpm="6">
+    <!-- <sae-card-chamber>
+    <sae-card-bg slot="bg" key="witness"></sae-card-bg>
+    <sae-being-aura slot="aura"></sae-being-aura>
+    <sae-witness-radar slot="radar"></sae-witness-radar>
+    <sae-focus-vessel slot="vessel" glyph="heart"></sae-focus-vessel>
+  </sae-card-chamber> -->
+
+    <!-- Field overview -->
+<sae-field-chamber>
+  <sae-field-bg slot="bg"></sae-field-bg>
+  <sae-field-witness slot="walls"></sae-field-witness>
+
+  <!-- gesture layer LAST so it paints above -->
+  <sae-field-gesture-layer slot="ground"></sae-field-gesture-layer>
+</sae-field-chamber>
+  </engine-root>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
