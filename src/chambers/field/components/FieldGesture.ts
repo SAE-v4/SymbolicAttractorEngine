@@ -1,7 +1,7 @@
 // chambers/field/components/FieldGestureLayerEl.ts
 import { TraceBuffer } from "@/systems/gesture/core/TraceBuffer";
 import { IntentRouter } from "@/systems/gesture/core/Router";
-import { DOMPointerAdapter } from "@/systems/gesture/adapters/DOMpointers";
+import { DOMPointerAdapter } from "@/systems/gesture/adapters/DOMpointer";
 import { CanvasOverlay } from "@/systems/gesture/adapters/CanvasOverlay";
 import type { Intent, SpiralIntent, TapIntent, ZigzagIntent } from "@/systems/gesture/core/Types";
 
@@ -38,6 +38,7 @@ export class FieldGestureLayerEl extends HTMLElement {
   }
 
   private handleIntent(intent: Intent){
+   
     if (intent.kind === "spiral"){
       const s = intent as SpiralIntent;
       const r = this.getBoundingClientRect();
@@ -51,4 +52,4 @@ export class FieldGestureLayerEl extends HTMLElement {
     console.log("test")
   }
 }
-customElements.define("field-gesture-layer", FieldGestureLayerEl);
+customElements.define("sae-field-gesture-layer", FieldGestureLayerEl);

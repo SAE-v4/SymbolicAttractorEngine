@@ -7,8 +7,8 @@ import { FieldWitnessEl }   from "./components/FieldWitness";
 if (!customElements.get("sae-field-chamber")) {
   customElements.define("sae-field-chamber", FieldChamberEl);
 }
-if (!customElements.get("sae-gesture-layer")) {
-  customElements.define("sae-gesture-layer", FieldGestureLayerEl);
+if (!customElements.get("sae-field-gesture-layer")) {
+  customElements.define("sae-field-gesture-layer", FieldGestureLayerEl);
 }
 if (!customElements.get("sae-field-bg")) {
   customElements.define("sae-field-bg", SaeFieldBgEl);

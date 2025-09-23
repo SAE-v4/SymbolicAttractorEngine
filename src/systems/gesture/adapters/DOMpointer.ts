@@ -15,7 +15,7 @@ export class DOMPointerAdapter {
     host.addEventListener("pointercancel", this.onUp, { passive:false });
   }
   private isDown = false;
-  private onDown = (e: PointerEvent) => { this.isDown = true; this.buf.clear(); this.push(e); };
+  private onDown = (e: PointerEvent) => { this.isDown = true; this.buf.clear(); this.push(e); console.log("Down!")};
   private onMove = (e: PointerEvent) => { if (!this.isDown) return; this.push(e); };
   private onUp   = (e: PointerEvent) => {
     if (!this.isDown) return; this.isDown = false; this.push(e);

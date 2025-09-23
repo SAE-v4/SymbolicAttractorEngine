@@ -221,12 +221,12 @@ canvas { pointer-events: none; }</style>
     }
   };
 
-  private onPoolAccent = (e: Event) => {
-    const { pos, strength } = (e as CustomEvent).detail as { pos: [number, number]; cw: boolean; strength: number };
-    this.focusPos = pos;
-    this.focusGain = Math.min(1.0, Math.max(this.focusGain, 0.25 + 0.75 * strength));
-  };
-
+private onPoolAccent = (e: Event) => {
+  const d = (e as CustomEvent).detail;
+  console.log("accent@bg", d);
+  this.focusPos = d.pos;
+  this.focusGain = Math.min(1, Math.max(this.focusGain, 0.35 + 0.90*d.strength));
+};
   private loop() {
     const gl = this.gl;
     const now = performance.now();

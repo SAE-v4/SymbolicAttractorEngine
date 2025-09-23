@@ -36,14 +36,12 @@ export class FieldChamberEl extends HTMLElement {
         </div>
               <div class="stack">
         <div class="layer input">
-          <slot name="ground"><field-gesture-layer></field-gesture-layer></slot>
+          <slot name="ground"><sae-field-gesture-layer></sae-field-gesture-layer></slot>
         </div>
       </div>
     `;
 
     this.addEventListener("engine-tick" as any, this.onEngineTick as any);
-
-document.addEventListener("pool:spiral-accent", this.onPoolAccent as EventListener, { capture: true });
 
 
   }
