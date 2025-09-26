@@ -1,0 +1,12 @@
+// src/chambers/field/macroHue.ts
+import type { DayPhase } from "@/engine/EngineClock";
+
+export function hueForPhase(p: DayPhase): number {
+  // soft warm mornings → cool nights
+  return p==="dawn" ? 75 : p==="day" ? 95 : p==="dusk" ? 35 : 240;
+}
+
+// tiny drift across the 0..1 day position for movement
+export function macroHue(day01:number, phase: DayPhase): number {
+  return hueForPhase(phase) + 8 * Math.sin(day01 * Math.PI * 2);
+}

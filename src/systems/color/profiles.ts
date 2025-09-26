@@ -8,6 +8,24 @@ export type PaletteAnchors = {
   ringA?: OKLCH;   ringB?: OKLCH;
 };
 
+// — New: Pool-leaning warm amber (good for Witness) —
+export const POOL_AMBER: PaletteAnchors = {
+  // gentle warm shift with inhale; low chroma to keep it lyrical, not neon
+  skyTopA: { l:0.58, c:0.045, h: 52 }, skyTopB: { l:0.68, c:0.070, h: 58 },
+  skyBotA: { l:0.46, c:0.038, h: 48 }, skyBotB: { l:0.54, c:0.055, h: 54 },
+  // optional accents (slightly brighter for band “light”)
+  ribbonA: { l:0.70, c:0.065, h: 56 }, ribbonB: { l:0.78, c:0.085, h: 60 },
+  auraA:   { l:0.64, c:0.050, h: 56 }, auraB:   { l:0.72, c:0.060, h: 60 },
+};
+
+// — New: Pool cool slate (good for Night/Organ or quiet Observatory) —
+export const POOL_SLATE: PaletteAnchors = {
+  skyTopA: { l:0.50, c:0.030, h:230 }, skyTopB: { l:0.58, c:0.045, h:238 },
+  skyBotA: { l:0.42, c:0.026, h:226 }, skyBotB: { l:0.50, c:0.038, h:234 },
+  ribbonA: { l:0.64, c:0.040, h:236 }, ribbonB: { l:0.70, c:0.048, h:242 },
+  auraA:   { l:0.56, c:0.034, h:232 }, auraB:   { l:0.62, c:0.040, h:238 },
+};
+
 // Evening-ish Solar (Dawn↔September)
 export const DAWN_SEPT: PaletteAnchors = {
   skyTopA: { l:0.52, c:0.045, h:232 }, skyTopB: { l:0.62, c:0.070, h:244 },

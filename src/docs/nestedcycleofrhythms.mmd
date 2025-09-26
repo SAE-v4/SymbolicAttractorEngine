@@ -1,0 +1,26 @@
+%% Nested cycles of rhythm
+flowchart TD
+
+    subgraph Micro["Micro-Rhythm — Breath (seconds)"]
+      A1["Inhale → Question"]
+      A2["Pause → Forgetting"]
+      A3["Exhale → Answer"]
+      A4["Pause → Dissolution"]
+      A1 --> A2 --> A3 --> A4 --> A1
+    end
+
+    subgraph Meso["Meso-Rhythm — Day & Season (hours, months)"]
+      B1["Morning → Observatory lens (Horizons)"]
+      B2["Afternoon → Garden lens (Growth)"]
+      B3["Evening → Witness lens (Reflection)"]
+      B4["Night → Organ lens (Metabolic)"]
+      B1 --> B2 --> B3 --> B4 --> B1
+    end
+
+    subgraph Macro["Macro-Rhythm — Thought Couplet (days)"]
+      C1["Half-formed thought (Question/Inhale)"]
+      C2["Latency (Pause)"]
+      C3["Resolution (Answer/Exhale)"]
+      C4["Forgetting (Pause again)"]
+      C1 --> C2 --> C3 --> C4 --> C1
+    end

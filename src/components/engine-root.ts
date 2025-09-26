@@ -6,16 +6,18 @@ import { BreathManual } from "@/engine/BreathManual";
 import type { EngineTick, BreathPhase } from "@/types/Core";
 
 export class EngineRoot extends HTMLElement {
-  static get observedAttributes() { return ["breath-mode", "breath-bpm"]; }
+  // New: allow setting the virtual day period (seconds), and breath mode/bpm
+  static get observedAttributes() { return ["breath-mode", "breath-bpm", "day-period"]; }
 
   private loop = new EngineLoop((t, dt) => this.onTick(t, dt));
-  private clock = new EngineClock();
+  private clock = new EngineClock(); // default 120s; can be overridden via attribute
 
   private auto = new BreathOscillator(6);
   private manual = new BreathManual();
   private breathMode: "auto" | "manual" = "auto";
 
   private tAbsSec = 0;
+  private slotEl!: HTMLSlotElement;
 
   constructor() {
     super();
@@ -29,18 +31,33 @@ export class EngineRoot extends HTMLElement {
       </style>
       <div class="frame"><div class="slot-wrap"><slot></slot></div></div>
     `;
+    this.slotEl = shadow.querySelector("slot") as HTMLSlotElement;
   }
 
   attributeChangedCallback(name: string, _o: string|null, v: string|null) {
     if (name === "breath-mode" && v) this.breathMode = (v === "manual" ? "manual" : "auto");
-    if (name === "breath-bpm" && v)  this.auto.bpm = Math.max(2, Number(v) || 6);
+    if (name === "breath-bpm"  && v) this.auto.bpm = Math.max(2, Number(v) || 6);
+    if (name === "day-period"  && v) {
+      const sec = Math.max(10, Number(v) || 120);
+      // re-create clock with new period (keeps code simple)
+      const old = this.clock;
+      this.clock = new EngineClock(sec);
+      // forward onPhaseChange hook
+      this.clock.onPhaseChange = old.onPhaseChange;
+    }
   }
 
   connectedCallback() {
-    // ensure child chamber upgrades before we start (optional, nice to have)
-    customElements.whenDefined("sae-card-chamber").then(() => customElements.upgrade?.(this));
+    // Phase change → bubble an event any chamber can listen to
+    this.clock.onPhaseChange = (phase) => {
+      this.dispatchEvent(new CustomEvent("day-phase", {
+        detail: { phase },
+        bubbles: true,
+        composed: true
+      }));
+    };
 
-    // manual breath bindings
+    // Manual breath bindings
     const onDown = (e: PointerEvent) => { if (this.breathMode === "manual") { this.manual.press(); this.setPointerCapture?.(e.pointerId); } };
     const onUp   = (e: PointerEvent) => { if (this.breathMode === "manual") { this.manual.release(); this.releasePointerCapture?.(e.pointerId); } };
     this.addEventListener("pointerdown", onDown, { passive:false });
@@ -65,21 +82,34 @@ export class EngineRoot extends HTMLElement {
       value = this.manual.value; phase = this.manual.phase; isExhaling = this.manual.isExhaling; bpm = 0;
     }
 
-    const detail: EngineTick = {
-      time: this.tAbsSec,
-      dt,
-      clock: { day01: this.clock.day01, phase: this.clock.phase },
-      breath: { value, phase, isExhaling, bpm },
-    };
+const detail: EngineTick = {
+  time: this.tAbsSec,
+  dt,
+  clock: {
+    day01: this.clock.day01,
+    phase: this.clock.phase,
+    axisIndex: this.clock.axisIndex,   // NEW
+    week01: this.clock.week01          // optional
+  },
+  breath: { value, phase, isExhaling, bpm },
+};
 
-    // bubble to subtree
+    // Broadcast to subtree
     this.dispatchEvent(new CustomEvent<EngineTick>("engine-tick", { detail, bubbles: true, composed: true }));
 
-    // optional direct hook for slotted children
-    const slot = this.shadowRoot!.querySelector("slot") as HTMLSlotElement;
-    for (const el of slot?.assignedElements?.() ?? []) {
+    // Direct push to slotted children (flexible method names)
+    const els = this.slotEl?.assignedElements?.() ?? [];
+    for (const el of els) {
       const anyEl = el as any;
-      if (typeof anyEl.onBreathTick === "function") anyEl.onBreathTick(detail);
+      if (typeof anyEl.update === "function") {
+        anyEl.update(detail);                    // preferred (PoolChamberEl supports this)
+      } else {
+        anyEl.setClock?.(detail.clock.day01, detail.clock.phase);
+        anyEl.setBreath?.(detail.breath);
+        anyEl.render?.(detail.dt);
+        // Back-compat hook name if some components used this
+        anyEl.onBreathTick?.(detail);
+      }
     }
   }
 }

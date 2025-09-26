@@ -1,0 +1,40 @@
+flowchart TD
+  subgraph Engine["Engine Layer"]
+    A[EngineLoop (dt)] --> B[EngineClock (day01, DayPhase)]
+    A --> C[BreathRuntime (BreathSample)]
+    B --> D[LensSelector (DayPhase → Lens)]
+  end
+
+  subgraph Shared["Shared Modules"]
+    E[Palette (breath, lens, macroHue → colors)]
+    F[BandsRenderer (lens-projected bands)]
+    G[PhaseGlimmer (phase-edge accents)]
+    H[Echoes (gesture ripples/ghosts)]
+  end
+
+  subgraph Pool["Pool Chamber (inward, reflective)"]
+    P1[Host BandsRenderer]
+    P2[Echo overlay + soft seed]
+  end
+
+  subgraph Card["Card Chamber (outward, structured)"]
+    C1[Host BandsRenderer (subtle)]
+    C2[Being Aura + Layout + Text]
+  end
+
+  B --> D
+  C --> E
+  D --> F
+  E --> F
+  C --> G
+  C --> H
+
+  F --> P1
+  G --> P1
+  H --> P2
+
+  F --> C1
+  E --> C2
+  G --> C1
+
+  P2 -->|pool:seed| Card

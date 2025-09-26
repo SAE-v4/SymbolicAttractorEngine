@@ -1,0 +1,34 @@
+flowchart TD
+
+    subgraph Loop["EngineLoop (master tick)"]
+      T[dt]
+    end
+
+    subgraph Clk["EngineClock (meso)"]
+      day01["day01 (0..1 over a day)"]
+      phase["phase: night / dawn / day / dusk"]
+      count["dayCount"]
+    end
+
+    subgraph Br["BreathRuntime (micro)"]
+      phaseB["breath.phase (inhale / pause / exhale)"]
+      valueB["breath.value (0..1)"]
+      velocityB["breath.velocity (+/-)"]
+      bpm["bpm"]
+    end
+
+    subgraph Ch["Chamber Projection"]
+      bands["Breath Bands (horizons / rings / tissue)"]
+      lens["Lens Projection (Observatory / Garden / Witness / Organ)"]
+      echoes["Gestural Ripples & Echoes"]
+      glyphs["Glyph / Phrase Outputs"]
+    end
+
+    Loop --> Clk
+    Loop --> Br
+
+    Clk --> lens
+    Br --> bands
+    Br --> echoes
+    lens --> bands
+    echoes --> glyphs
