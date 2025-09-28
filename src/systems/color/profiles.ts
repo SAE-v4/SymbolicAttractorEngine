@@ -3,7 +3,7 @@ import type { OKLCH } from './oklch';
 export type PaletteAnchors = {
   skyTopA: OKLCH; skyTopB: OKLCH;
   skyBotA: OKLCH; skyBotB: OKLCH;
-  ribbonA?: OKLCH; ribbonB?: OKLCH;   // optional overrides
+  ribbonA?: OKLCH; ribbonB?: OKLCH;
   auraA?: OKLCH;   auraB?: OKLCH;
   ringA?: OKLCH;   ringB?: OKLCH;
 };
@@ -43,4 +43,22 @@ export const FIELD_NEUTRAL: PaletteAnchors = {
   skyTopA: { l:0.48, c:0.032, h:235 }, skyTopB: { l:0.58, c:0.050, h:242 },
   skyBotA: { l:0.42, c:0.028, h:232 }, skyBotB: { l:0.50, c:0.042, h:238 },
   // optional accents can be omitted; breathPalette will derive band/aura/ring
+};
+// Vibrant horizon bands (teal ↔ yellow ↔ purple), inspired by the mock
+export const VIBRANT_HORIZON: PaletteAnchors = {
+  // Bright “skyTop” breathes toward electric yellow on inhale
+  skyTopA: { l: 0.70, c: 0.085, h: 190 }, // teal-cyan
+  skyTopB: { l: 0.86, c: 0.120, h: 100 }, // electric yellow
+
+  // “skyBot” tends toward deep violet for troughs
+  skyBotA: { l: 0.45, c: 0.080, h: 210 }, // deeper teal
+  skyBotB: { l: 0.30, c: 0.085, h: 300 }, // purple/violet
+
+  // Use ribbon as the band accent (slightly brighter than skyTop mid)
+  ribbonA: { l: 0.78, c: 0.105, h: 120 }, // lime-yellow
+  ribbonB: { l: 0.84, c: 0.125, h: 100 }, // electric yellow
+
+  // Aura/ring optional; keep them coherent with the scheme
+  auraA: { l: 0.66, c: 0.080, h: 190 },
+  auraB: { l: 0.74, c: 0.095, h: 120 },
 };

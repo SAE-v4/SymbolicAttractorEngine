@@ -1,6 +1,7 @@
 // src/chambers/pool/PoolChamberEl.ts
 import type { DayPhase } from "@/types";
 import type { BreathSample, EngineTick, Lens, PoolKind } from "@/types";
+
 import { PhaseGlimmer } from "@chambers/pool/systems/PhaseGlimmer";
 import { PoolSeeds } from "@chambers/pool/systems/PoolSeeds";
 import { BandLayer } from "@chambers/pool/layers/BandLayer";
@@ -10,14 +11,17 @@ import { macroHue } from "@chambers/pool/systems/macroHue";
 import { LensDirector } from "@chambers/pool/systems/LensDirector";
 import { DebugHud } from "@chambers/pool/systems/DebugHud";
 
+// NEW: theme key is owned by BandLayer via setTheme("normal"|"test"|"vibrant")
+type ThemeKey = "normal" | "test" | "vibrant";
+
 export class PoolChamberEl extends HTMLElement {
-  static get observedAttributes() { return ["debug", "palette", "lock-lens"]; }
+  static get observedAttributes() { return ["debug", "theme", "lock-lens", "channel"]; }
 
   // Debug + tuning
   private hud = new DebugHud();
   private debug = false;
-  private lockLens?: Lens;                 // force a lens during tuning
-  private paletteMode: "normal" | "test" = "normal";
+  private lockLens?: Lens; // force a lens during tuning
+  private themeKey: ThemeKey = "normal";
 
   // Canvas
   private canvas!: HTMLCanvasElement;
@@ -26,7 +30,7 @@ export class PoolChamberEl extends HTMLElement {
 
   // Dynamics
   private lens: Lens = "witness";
-  private lensDir = new LensDirector(8, 2);   // 8s fade, 2s hysteresis
+  private lensDir = new LensDirector(8, 2); // 8s fade, 2s hysteresis
   private glimmer = new PhaseGlimmer();
   private poolSeeds = new PoolSeeds(() => this.dispatchEvent.bind(this));
 
@@ -39,7 +43,7 @@ export class PoolChamberEl extends HTMLElement {
   private _breath: BreathSample = { value: 0, phase: "inhale", bpm: 6 };
   private _macroHue = 95;
   private _day01 = 0;
-  private _axisIndex = 0;   // (not used for now; seasoning disabled)
+  private _dayPhase: DayPhase = "day";
   private _lastDt = 0.016;
 
   private ro?: ResizeObserver;
@@ -51,9 +55,20 @@ export class PoolChamberEl extends HTMLElement {
 
   attributeChangedCallback(name: string, _o: string | null, v: string | null) {
     if (name === "debug") this.debug = v !== null;
-    if (name === "palette") this.paletteMode = (v === "test" ? "test" : "normal");
+
+    if (name === "theme") {
+      const k = ((v ?? "normal").toLowerCase() as ThemeKey);
+      this.themeKey = (k === "test" || k === "vibrant") ? k : "normal";
+      this.bands.setTheme(this.themeKey);
+    }
+
     if (name === "lock-lens") this.lockLens = (v as Lens) || undefined;
-    this.bands.enableTestPalette(this.paletteMode === "test");
+
+    if (name === "channel") {
+      const p = (v ?? "both").toLowerCase();
+      const good = p === "shadow" || p === "light" ? p : "both";
+      this.bands.setPreview(good);
+    }
   }
 
   connectedCallback() {
@@ -73,16 +88,18 @@ export class PoolChamberEl extends HTMLElement {
 
     // init attributes
     this.attributeChangedCallback("debug", null, this.getAttribute("debug"));
-    this.attributeChangedCallback("palette", null, this.getAttribute("palette"));
+    this.attributeChangedCallback("theme", null, this.getAttribute("theme"));
     this.attributeChangedCallback("lock-lens", null, this.getAttribute("lock-lens"));
+    this.attributeChangedCallback("channel", null, this.getAttribute("channel"));
 
     // optional keyboard toggles (focusable for key events)
     this.tabIndex = 0;
     this.addEventListener("keydown", (e) => {
-      if (e.key === "d") { this.debug = !this.debug; }
+      if (e.key === "d") this.debug = !this.debug;
       if (e.key === "p") {
-        this.paletteMode = this.paletteMode === "test" ? "normal" : "test";
-        this.bands.enableTestPalette(this.paletteMode === "test");
+        // quick toggle normal <-> test
+        this.themeKey = this.themeKey === "test" ? "normal" : "test";
+        this.bands.setTheme(this.themeKey);
       }
     });
   }
@@ -101,21 +118,16 @@ export class PoolChamberEl extends HTMLElement {
   }
 
   // --- engine hooks ---
-  setClock(day01: number, phase: DayPhase, axisIndex?: number) {
+  setClock(day01: number, phase: DayPhase) {
     this._day01 = day01;
+    this._dayPhase = phase;
 
     // Lens: either lock (for tuning) or smooth via LensDirector
     const effectiveLens = this.lockLens ?? this.lensDir.update(this._lastDt, phase);
     this.lens = effectiveLens;
 
-    // Gentle meso tint from clock phase
+    // Gentle meso tint from clock phase (kept for future color nudges)
     this._macroHue = macroHue(day01, phase);
-
-    // 7D seasoning disabled for now; leave the hook
-    if (axisIndex != null) {
-      this._axisIndex = axisIndex;
-      // this.bands.setAxis(axisIndex);
-    }
   }
 
   setBreath(b: BreathSample) {
@@ -126,7 +138,7 @@ export class PoolChamberEl extends HTMLElement {
   /** Optional convenience for whole EngineTick */
   update(tick: EngineTick) {
     this._lastDt = tick.dt || 0.016;
-    this.setClock(tick.clock.day01, tick.clock.phase, tick.clock.axisIndex);
+    this.setClock(tick.clock.day01, tick.clock.phase as DayPhase);
     this.setBreath(tick.breath);
     this.render(tick.dt);
   }
@@ -150,7 +162,17 @@ export class PoolChamberEl extends HTMLElement {
     g.clearRect(0, 0, this.canvas.width / this.dpr, this.canvas.height / this.dpr);
 
     // Bands (horizons), Echoes, Text
-    this.bands.draw(g, this.lens, this._breath, intensity, this._macroHue, this._lastDt);
+    this.bands.draw(
+      g,
+      this.lens,
+      this._breath,
+      intensity,
+      this._macroHue,
+      this._lastDt,
+      this._day01,         // <-- pass day01
+      this._dayPhase       // <-- pass dayPhase
+    );
+
     this.echoes.draw(g, this._breath);
     this.text.draw(g, this._breath);
 
@@ -160,6 +182,8 @@ export class PoolChamberEl extends HTMLElement {
       const fps = this.hud.updateFps();
       this.hud.draw(g, {
         fps,
+        day01: this._day01,
+        dayPhase: this._dayPhase,      // optional label if your HUD shows it
         phase: this._breath.phase,
         value: this._breath.value,
         glimmer: intensity,
