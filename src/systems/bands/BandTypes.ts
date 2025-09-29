@@ -29,3 +29,40 @@ export type BandTheme = {
   channels: (i: BandInputs) => BandChannels;
   fill?: (i: BandInputs) => CssColor;
 };
+
+export type BandsLens = "observatory" | "witness" | "metabolic" | "garden";
+
+export interface BandsUniforms {
+  lens: BandsLens;
+  // breath
+  phase: 0 | 1 | 2;      // inhale/pause/exhale
+  value: number;         // 0..1 within phase
+  velocity: number;      // signed
+  bpm: number;
+
+  // field
+  bandFreq: number;
+  bandTilt: number;
+  bandSoft: number;
+  driftBase: number;
+  driftGain: number;
+  bandAlpha: number;
+
+  // grade/tone
+  gradeTop: number;
+  gradeBot: number;
+  gamma: number;
+  vignette: number;
+
+  // witness (optional)
+  phaseBandY?: number;
+  phaseBandWidth?: number;
+  phaseBandSoft?: number;
+  phaseBandAlpha?: number;
+  phaseBandValue?: number;
+
+  // garden (optional)
+  iFreqDelta?: number;
+  iTiltDelta?: number;
+  iAlpha?: number;
+}

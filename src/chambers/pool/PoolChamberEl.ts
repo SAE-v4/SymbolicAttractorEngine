@@ -1,52 +1,24 @@
-// src/chambers/pool/PoolChamberEl.ts
 import type { DayPhase } from "@/types";
-import type { BreathSample, EngineTick, Lens, PoolKind } from "@/types";
-
-import { PhaseGlimmer } from "@chambers/pool/systems/PhaseGlimmer";
-import { PoolSeeds } from "@chambers/pool/systems/PoolSeeds";
+import type { BreathSample, EngineTick, PoolKind } from "@/types";
 import { BandLayer } from "@chambers/pool/layers/BandLayer";
-import { EchoLayer } from "@chambers/pool/layers/EchoLayer";
-import { TextLayer } from "@chambers/pool/layers/TextLayer";
-import { macroHue } from "@chambers/pool/systems/macroHue";
-import { LensDirector } from "@chambers/pool/systems/LensDirector";
-import { DebugHud } from "@chambers/pool/systems/DebugHud";
-
-// NEW: theme key is owned by BandLayer via setTheme("normal"|"test"|"vibrant")
-type ThemeKey = "normal" | "test" | "vibrant";
 
 export class PoolChamberEl extends HTMLElement {
-  static get observedAttributes() { return ["debug", "theme", "lock-lens", "channel"]; }
+  static get observedAttributes() { return ["debug"]; }  // <-- add debug
 
-  // Debug + tuning
-  private hud = new DebugHud();
-  private debug = false;
-  private lockLens?: Lens; // force a lens during tuning
-  private themeKey: ThemeKey = "normal";
-
-  // Canvas
-  private canvas!: HTMLCanvasElement;
-  private g!: CanvasRenderingContext2D;
   private dpr = Math.max(1, devicePixelRatio || 1);
-
-  // Dynamics
-  private lens: Lens = "witness";
-  private lensDir = new LensDirector(8, 2); // 8s fade, 2s hysteresis
-  private glimmer = new PhaseGlimmer();
-  private poolSeeds = new PoolSeeds(() => this.dispatchEvent.bind(this));
-
-  // Layers
   private bands = new BandLayer();
-  private echoes = new EchoLayer();
-  private text = new TextLayer();
 
-  // State
   private _breath: BreathSample = { value: 0, phase: "inhale", bpm: 6 };
-  private _macroHue = 95;
   private _day01 = 0;
   private _dayPhase: DayPhase = "day";
   private _lastDt = 0.016;
 
   private ro?: ResizeObserver;
+  private useSyntheticBreath = false;
+
+  // NEW: HUD elements/state
+  private debug = false;
+  private hudEl!: HTMLDivElement;
 
   constructor() {
     super();
@@ -54,20 +26,9 @@ export class PoolChamberEl extends HTMLElement {
   }
 
   attributeChangedCallback(name: string, _o: string | null, v: string | null) {
-    if (name === "debug") this.debug = v !== null;
-
-    if (name === "theme") {
-      const k = ((v ?? "normal").toLowerCase() as ThemeKey);
-      this.themeKey = (k === "test" || k === "vibrant") ? k : "normal";
-      this.bands.setTheme(this.themeKey);
-    }
-
-    if (name === "lock-lens") this.lockLens = (v as Lens) || undefined;
-
-    if (name === "channel") {
-      const p = (v ?? "both").toLowerCase();
-      const good = p === "shadow" || p === "light" ? p : "both";
-      this.bands.setPreview(good);
+    if (name === "debug") {
+      this.debug = v !== null;
+      if (this.hudEl) this.hudEl.style.display = this.debug ? "block" : "none";
     }
   }
 
@@ -75,33 +36,33 @@ export class PoolChamberEl extends HTMLElement {
     this.shadowRoot!.innerHTML = `
       <style>
         :host{display:block;position:relative;contain:layout paint}
-        canvas{position:absolute;inset:0;width:100%;height:100%}
+        .hud{
+          position:absolute; top:8px; left:8px; z-index:10;
+          background:rgba(0,0,0,0.55); color:#fff;
+          font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+          line-height:1.35; padding:8px 10px; border-radius:8px;
+          white-space:pre; user-select:text; pointer-events:auto;
+        }
+        .hud b{ color:#a5e3ff; font-weight:600 }
+        .hud .dim{ color:#cbd5e1 }
       </style>
-      <canvas></canvas>
     `;
-    this.canvas = this.shadowRoot!.querySelector("canvas")!;
-    this.g = this.canvas.getContext("2d")!;
+
+    // Mount GL overlay
+    this.bands.mount(this.shadowRoot!);
+
+    // NEW: HUD element
+    this.hudEl = document.createElement("div");
+    this.hudEl.className = "hud";
+    this.hudEl.style.display = this.debug ? "block" : "none";
+    this.shadowRoot!.appendChild(this.hudEl);
 
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(this);
     this.resize();
 
-    // init attributes
+    // initialize debug attribute if present
     this.attributeChangedCallback("debug", null, this.getAttribute("debug"));
-    this.attributeChangedCallback("theme", null, this.getAttribute("theme"));
-    this.attributeChangedCallback("lock-lens", null, this.getAttribute("lock-lens"));
-    this.attributeChangedCallback("channel", null, this.getAttribute("channel"));
-
-    // optional keyboard toggles (focusable for key events)
-    this.tabIndex = 0;
-    this.addEventListener("keydown", (e) => {
-      if (e.key === "d") this.debug = !this.debug;
-      if (e.key === "p") {
-        // quick toggle normal <-> test
-        this.themeKey = this.themeKey === "test" ? "normal" : "test";
-        this.bands.setTheme(this.themeKey);
-      }
-    });
   }
 
   disconnectedCallback() { this.ro?.disconnect(); }
@@ -109,94 +70,63 @@ export class PoolChamberEl extends HTMLElement {
   private resize() {
     const w = Math.max(1, this.clientWidth);
     const h = Math.max(1, this.clientHeight);
-    this.canvas.width = Math.floor(w * this.dpr);
-    this.canvas.height = Math.floor(h * this.dpr);
-    this.g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.bands.resize(w, h);
-    this.echoes.resize(w, h);
-    this.text.resize(w, h);
+    this.bands.resize(w, h, this.dpr);
   }
 
   // --- engine hooks ---
   setClock(day01: number, phase: DayPhase) {
     this._day01 = day01;
     this._dayPhase = phase;
-
-    // Lens: either lock (for tuning) or smooth via LensDirector
-    const effectiveLens = this.lockLens ?? this.lensDir.update(this._lastDt, phase);
-    this.lens = effectiveLens;
-
-    // Gentle meso tint from clock phase (kept for future color nudges)
-    this._macroHue = macroHue(day01, phase);
   }
 
-  setBreath(b: BreathSample) {
-    this._breath = b;
-    this.glimmer.update(b.phase);
-  }
+  setBreath(b: BreathSample) { this._breath = b; }
 
-  /** Optional convenience for whole EngineTick */
   update(tick: EngineTick) {
     this._lastDt = tick.dt || 0.016;
     this.setClock(tick.clock.day01, tick.clock.phase as DayPhase);
     this.setBreath(tick.breath);
-    this.render(tick.dt);
+    this.render(this._lastDt);
   }
 
-  // --- gesture hook ---
-  onTraceEnd(result: { kind: PoolKind; dir?: "cw" | "ccw"; confidence: number; centroid: { x: number; y: number }; }) {
-    this.echoes.spawn(result, this._breath, this.lens);
-    const seed = this.poolSeeds.build(result, this.lens, this._day01);
-    this.dispatchEvent(new CustomEvent("pool:seed", { detail: seed, bubbles: true }));
-  }
-
-  disturb(kind: PoolKind, x: number, y: number, strength = 1, dir?: "cw" | "ccw") {
-    this.bands.disturb(kind, x, y, strength, dir);
+  // OPTIONAL: synthetic breath for validation
+  private synthBreath(_dt: number) {
+    const period = 3.5;
+    const t = (performance.now() / 1000) % (period * 3);
+    let phase: BreathSample["phase"] = "inhale";
+    let value = 0;
+    if (t < period) { phase = "inhale"; value = t / period; }
+    else if (t < 2*period) { phase = "pause"; value = 0.5; }
+    else { phase = "exhale"; value = (t - 2*period) / period; }
+    this._breath = { value, phase, bpm: 60 / (period * 2) };
   }
 
   render(dt: number) {
-    this._lastDt = dt || this._lastDt;
-    const intensity = this.glimmer.advance(dt);
+    if (this.useSyntheticBreath) this.synthBreath(dt);
 
-    const g = this.g;
-    g.clearRect(0, 0, this.canvas.width / this.dpr, this.canvas.height / this.dpr);
+    this.bands.setBreath(this._breath);
+    this.bands.update(dt);
+    this.bands.draw();
 
-    // Bands (horizons), Echoes, Text
-    this.bands.draw(
-      g,
-      this.lens,
-      this._breath,
-      intensity,
-      this._macroHue,
-      this._lastDt,
-      this._day01,         // <-- pass day01
-      this._dayPhase       // <-- pass dayPhase
-    );
-
-    this.echoes.draw(g, this._breath);
-    this.text.draw(g, this._breath);
-
-    // Debug HUD
-    if (this.debug) {
-      const m = this.bands.getMetrics();
-      const fps = this.hud.updateFps();
-      this.hud.draw(g, {
-        fps,
-        day01: this._day01,
-        dayPhase: this._dayPhase,      // optional label if your HUD shows it
-        phase: this._breath.phase,
-        value: this._breath.value,
-        glimmer: intensity,
-        lens: this.lens,
-        spacing: m.spacing,
-        thick: m.thick,
-        lead: m.lead,
-        lag: m.lag,
-        alphaShadow: m.alphaShadow,
-        alphaLight: m.alphaLight,
-      });
-    }
+    if (this.debug) this.updateHUD();
   }
+
+  // NEW: HUD update
+  private updateHUD() {
+    const d = this.bands.getDebug();
+    const lines = [
+      `phase:  \t${d.phase}`,
+      `p_int:  \t${d.phase === "pause" ? "-" : d.pInt.toFixed(3)}`,
+      `speed:  \t${d.speed.toFixed(3)} h/s`,
+      `scroll: \t${d.scroll.toFixed(3)} (period=${d.period.toFixed(3)})`,
+      `bpm:    \t${d.bpm.toFixed(2)}`,
+      `freq:   \t${d.freq.toFixed(2)}  tilt: ${d.tilt.toFixed(3)}`,
+      `day01:  \t${this._day01.toFixed(3)} (${this._dayPhase})`,
+    ];
+    this.hudEl.textContent = lines.join("\n");
+  }
+
+  // compatibility stub
+  disturb(_kind: PoolKind, _x: number, _y: number, _strength = 1, _dir?: "cw" | "ccw") {}
 }
 
 if (!customElements.get("sae-pool-chamber")) {

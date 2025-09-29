@@ -1,115 +1,206 @@
-// src/chambers/pool/layers/BandLayer.ts
-import { resolveTheme, type ThemeKey } from "@/systems/bands/BandTheme";
-import type { Lens, BreathSample, BreathPhase, BandInputs, BandChannels } from "@/systems/bands/BandTypes";
-import { drawBandPair } from "@/systems/bands/BandRenderer2D";
-import { Lag } from "@chambers/pool/systems/Lag";
-import { dayShading } from "@/systems/bands/MesoShading"; // <-- also fixes dayShading undefined
-import type { DayPhase } from "@/types";
+// Minimal grayscale breathing bands — WebGL2 (Observatory only).
+// API: mount(shadowRoot), resize(cssW, cssH, dpr), setBreath(b), update(dt), draw()
+
+import FS from "@systems/bands/shaders/frag.glsl?raw";
+
+export type BreathSample = { value: number; phase: "inhale" | "pause" | "exhale"; bpm: number };
+
+const VS = `#version 300 es
+precision highp float;
+out vec2 v_uv;
+void main() {
+  vec2 p = (gl_VertexID == 0) ? vec2(-1.0, -1.0)
+         : (gl_VertexID == 1) ? vec2( 3.0, -1.0)
+                              : vec2(-1.0,  3.0);
+  v_uv = p * 0.5 + 0.5;
+  gl_Position = vec4(p, 0.0, 1.0);
+}`.trim();
+
+function compile(gl: WebGL2RenderingContext, type: number, src: string) {
+  const sh = gl.createShader(type)!;
+  gl.shaderSource(sh, src);
+  gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+    const err = gl.getShaderInfoLog(sh);
+    gl.deleteShader(sh);
+    throw new Error(err || "shader compile");
+  }
+  return sh;
+}
+function program(gl: WebGL2RenderingContext, vs: string, fs: string) {
+  const p = gl.createProgram()!;
+  const v = compile(gl, gl.VERTEX_SHADER, vs);
+  const f = compile(gl, gl.FRAGMENT_SHADER, fs);
+  gl.attachShader(p, v);
+  gl.attachShader(p, f);
+  gl.linkProgram(p);
+  gl.deleteShader(v);
+  gl.deleteShader(f);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    const err = gl.getProgramInfoLog(p);
+    gl.deleteProgram(p);
+    throw new Error(err || "program link");
+  }
+  return p;
+}
 
 export class BandLayer {
-  private w = 1; private h = 1;
-  private lastVal = 0; private lastPhase: BreathPhase = "exhale";
-  private preview: "both" | "shadow" | "light" = "both";
-  setTheme(k: ThemeKey) { this.themeKey = k; }
-  setPreview(p: "both" | "shadow" | "light") { this.preview = p; }
+  private canvas!: HTMLCanvasElement;
+  private gl!: WebGL2RenderingContext;
+  private prog!: WebGLProgram;
+  private u: Record<string, WebGLUniformLocation> = {};
+  private pxW = 1;
+  private pxH = 1;
 
-  private themeKey: ThemeKey = "normal";
+  // Breath / dynamics
+  private breath: BreathSample = { value: 0.5, phase: "pause", bpm: 6 };
+  private prevPhase: BreathSample["phase"] = "pause";
+  private speed = 0;   // screen-heights per second
+  private scroll = 0;  // accumulated position (mod one band period)
+
+  // Observatory preset (grayscale)
+  private P = {
+    bandFreq: 5.8,
+    bandTilt: -0.03,
+    bandSoft: 0.26,
+    bandAlpha: 0.48,
+    gradeTop: 0.10,
+    gradeBot: 0.28,
+    gamma: 1.20,
+    vignette: 0.12,
+  } as const;
+
+  private phaseTime = 0;           // already in your integrated mode
+  private phaseDurHint = 0;        // already computed in update()
+  private pInt = 0;
+
+  mount(root: ShadowRoot) {
+    this.canvas = document.createElement("canvas");
+    Object.assign(this.canvas.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none",
+    });
+    root.appendChild(this.canvas);
+
+    const gl = this.canvas.getContext("webgl2", { antialias: true, premultipliedAlpha: false });
+    if (!gl) throw new Error("BandLayer: WebGL2 unavailable");
+    this.gl = gl;
+
+    this.prog = program(gl, VS, FS);
+    gl.useProgram(this.prog);
+
+    // Only the uniforms the Observatory frag uses:
+    const U = (n: string) => gl.getUniformLocation(this.prog, n)!;
+    [
+      "u_scroll",
+      "u_bandFreq", "u_bandTilt", "u_bandSoft", "u_bandAlpha",
+      "u_gradeTop", "u_gradeBot", "u_gamma", "u_vignette",
+      "u_resolution",
+    ].forEach((n) => (this.u[n] = U(n)));
+  }
+
+  resize(cssW: number, cssH: number, dpr: number) {
+    this.pxW = Math.max(1, Math.floor(cssW * dpr));
+    this.pxH = Math.max(1, Math.floor(cssH * dpr));
+    this.canvas.width = this.pxW;
+    this.canvas.height = this.pxH;
+  }
+
+setBreath(b: BreathSample) {
+  if (b.phase !== this.breath.phase) {
+    this.prevPhase = this.breath.phase;
+    this.breath = b;
+    this.speed = 0;
+    this.phaseTime = 0;        // <<< add this
+  } else {
+    this.breath = b;
+  }
+}
 
 
-  // smoothing
-  private lagSpacing = new Lag(0.18, 28);
-  private lagThick = new Lag(0.14, 14);
-  private lagLead = new Lag(0.10, 0);
-  private lagLag = new Lag(0.10, 0);
-  private lagAlphaS = new Lag(0.10, 0.3);
-  private lagAlphaL = new Lag(0.10, 0.3);
+  update(dt: number) {
+    const phase = this.breath.phase;
 
-  // hud metrics
-  private metrics = { spacing: 0, thick: 0, lead: 0, lag: 0, alphaShadow: 0, alphaLight: 0 };
-  getMetrics() { return this.metrics; }
+  // advance internal clock only while in a flowing phase
+  if (phase === "inhale" || phase === "exhale") {
+    this.phaseTime += dt;      // <<< add this
+  }
 
-  resize(w: number, h: number) { this.w = w; this.h = h; }
+    // Envelope with non-zero edge slope: immediate motion at phase start
 
-  disturb(_k: "trace-spiral" | "trace-zigzag" | "tap-hold", _x: number, _y: number, _s: number, _d?: "cw" | "ccw") { }
+    const bpm = Math.max(1e-3, this.breath.bpm || 6);
+    const phaseDur = 30 / bpm;
+    this.phaseDurHint = phaseDur;
 
-  draw(
-    g: CanvasRenderingContext2D,
-    lens: Lens,
-    breath: BreathSample,
-    glimmer: number,
-    macroHue: number,
-    dt: number,
-    day01: number,           // <-- NEW
-    dayPhase: DayPhase       // <-- NEW
-  ) {
-    const inputs = { breath, day01, dayPhase, lens } as BandInputs;
-    const theme = resolveTheme(this.themeKey);
-    const chans: BandChannels = theme.channels(inputs);
+    const p_int =
+      phase === "inhale" || phase === "exhale"
+        ? Math.min(1, this.phaseTime / phaseDur)
+        : 0.5;
 
-    // base wash (very light vertical shade only for non-test themes if you want)
-    g.save();
-    g.fillStyle = theme.fill ? theme.fill(inputs) : chans.fill;
-    g.fillRect(0, 0, this.w, this.h);
-    g.restore();
+    this.pInt = p_int; // <-- store for HUD
 
-    // derive raw targets
-    const dv = breath.value - this.lastVal; this.lastVal = breath.value;
-    const speed = Math.min(1, Math.abs(dv) * 6);
-    const t = (breath.value + 1) * 0.5;
+    const envelope = phase === "pause" ? 0 : Math.sin(Math.PI * p_int);
+    const dir = phase === "inhale" ? -1 : (phase === "exhale" ? +1 : 0);
+    const K = 0.65;
+    const target = dir * K * envelope;
 
-    const base = lens === "observatory" ? 26 : lens === "witness" ? 34 : lens === "organ" ? 22 : 24;
-    const amp = lens === "witness" ? 10 : 8;
+    const tau = 0.22;
+    const a = 1 - Math.exp(-dt / tau);
+    this.speed += (target - this.speed) * a;
 
-    const spacingTarget = base + amp * (t - 0.5);
-    const thickTarget = spacingTarget * 0.48;
-
-    const dir = breath.phase === "exhale" ? +1 : breath.phase === "inhale" ? -1 : 0;
-    const leadTarget = dir * thickTarget * 0.18;
-    const lagTarget = -leadTarget * 0.5;
-
-    const isPause = breath.phase === "pause";
-    const thickP = isPause ? (thickTarget + spacingTarget * 0.04) : thickTarget;
-    const leadP = isPause ? 0 : leadTarget;
-    const lagP = isPause ? 0 : lagTarget;
-
-    // smooth
-    const spacing = this.lagSpacing.step(spacingTarget, dt);
-    const thick = this.lagThick.step(thickP, dt);
-    const lead = this.lagLead.step(leadP, dt);
-    const lag = this.lagLag.step(lagP, dt);
-
-    // micro alpha envelope
-    const baseShadow = 0.22, baseLight = 0.28;
-    const phaseLiftS = breath.phase === "pause" ? 0.10 : breath.phase === "exhale" ? 0.06 : 0;
-    const phaseLiftL = breath.phase === "pause" ? 0.06 : breath.phase === "inhale" ? 0.05 : 0;
-    const rawS = baseShadow + 0.18 * speed + 0.10 * glimmer + phaseLiftS;
-    const rawL = baseLight + 0.12 * speed + 0.12 * glimmer + phaseLiftL;
-
-    // meso modulation (optional, wire proper day01/phase if desired)
-    const { alphaMul } = dayShading(day01, dayPhase);
-    const aS = this.lagAlphaS.step(rawS * alphaMul, dt);
-    const aL = this.lagAlphaL.step(rawL * alphaMul, dt);
-
-    const alpha = {
-      shadow: this.preview === "light" ? 0 : aS,
-      light: this.preview === "shadow" ? 0 : aL,
-    };
-
-    // softness + paint
-    const softness = 0.60 - 0.22 * glimmer;
-    const feather = 1.2;
-
-    for (let y = 0; y < this.h + spacing; y += spacing) {
-      drawBandPair(g, {
-        x: 0, y, w: this.w,
-        spacing, thick, lead, lag,
-        softness, feather,
-        colors: { ...chans },
-        alpha,                                // <-- use preview-aware alpha
-      });
+    if (phase === "pause") {
+      const tauPause = 0.10;
+      const ap = 1 - Math.exp(-dt / tauPause);
+      this.speed += (0 - this.speed) * ap;
     }
 
-    this.metrics = { spacing, thick, lead, lag, alphaShadow: aS, alphaLight: aL };
-    this.lastPhase = breath.phase;
+    this.scroll += this.speed * dt;
+    const period = 1 / this.P.bandFreq;
+    this.scroll = ((this.scroll % period) + period) % period
+
+  }
+
+  getDebug() {
+    return {
+      phase: this.breath.phase,
+      bpm: this.breath.bpm,
+      pInt: this.pInt,               // 0..1 internal progress
+      speed: this.speed,             // screen-heights / sec
+      scroll: this.scroll,           // wrapped position
+      freq: this.P.bandFreq,
+      tilt: this.P.bandTilt,
+      period: 1 / this.P.bandFreq,
+      phaseTime: this.phaseTime,
+      phaseDur: this.phaseDurHint,
+    };
+  }
+
+
+  draw() {
+    const gl = this.gl;
+    if (!gl) return;
+    gl.viewport(0, 0, this.pxW, this.pxH);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+    gl.useProgram(this.prog);
+
+    // Resolution
+    gl.uniform2f(this.u.u_resolution, this.pxW, this.pxH);
+
+    // Bands + grade
+    gl.uniform1f(this.u.u_scroll, this.scroll);
+    gl.uniform1f(this.u.u_bandFreq, this.P.bandFreq);
+    gl.uniform1f(this.u.u_bandTilt, this.P.bandTilt);
+    gl.uniform1f(this.u.u_bandSoft, this.P.bandSoft);
+    gl.uniform1f(this.u.u_bandAlpha, this.P.bandAlpha);
+    gl.uniform1f(this.u.u_gradeTop, this.P.gradeTop);
+    gl.uniform1f(this.u.u_gradeBot, this.P.gradeBot);
+    gl.uniform1f(this.u.u_gamma, this.P.gamma);
+    gl.uniform1f(this.u.u_vignette, this.P.vignette);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 }
