@@ -1,6 +1,8 @@
 import type { DayPhase } from "@/types";
 import type { BreathSample, EngineTick, PoolKind } from "@/types";
 import { BandLayer } from "@chambers/pool/layers/BandLayer";
+import type { LensKey } from "@systems/bands/BandTypes";
+
 
 export class PoolChamberEl extends HTMLElement {
   static get observedAttributes() { return ["debug"]; }  // <-- add debug
