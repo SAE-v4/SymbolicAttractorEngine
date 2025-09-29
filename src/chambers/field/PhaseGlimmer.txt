@@ -1,0 +1,24 @@
+// src/chambers/field/PhaseGlimmer.ts
+export type BreathPhase = "inhale"|"pause"|"exhale";
+
+export class PhaseGlimmer {
+  private last: BreathPhase = "exhale";
+  private t = 0; // 0..1
+  private active = false;
+
+  // call every breath update
+  update(current: BreathPhase) {
+    if (current !== this.last) {      // transition edge
+      this.active = true;
+      this.t = 1;                     // start glimmer at full
+      this.last = current;
+    }
+  }
+  // call per-frame with dt
+  advance(dt: number) {
+    if (!this.active) return 0;
+    this.t = Math.max(0, this.t - dt * 3.0); // ~300–400ms fade
+    if (this.t === 0) this.active = false;
+    return this.t; // intensity 0..1
+  }
+}

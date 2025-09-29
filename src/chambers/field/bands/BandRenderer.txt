@@ -1,0 +1,10 @@
+// src/chambers/field/bands/BandRenderer.ts
+import type { Lens } from "../lenses";
+import type { Breath } from "@/types/Core";
+
+export interface BandRenderer {
+  resize(w:number, h:number): void;
+  draw(g:CanvasRenderingContext2D, lens: Lens, breath: Breath, glimmer: number, macroHue: number): void;
+  // optional: apply local disturbances (gesture refractions/ripples)
+  disturb?(kind: "spiral"|"zigzag"|"hold", x:number, y:number, strength:number, dir?: "cw"|"ccw"): void;
+}

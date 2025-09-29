@@ -1,0 +1,24 @@
+// src/chambers/field/bands/horizonBands.ts
+export function drawHorizonBands(
+  g:CanvasRenderingContext2D, w:number, h:number,
+  breathValue:number, hue:number, glimmer:number
+){
+  // band spacing modulated by breath; glimmer adds temporary focus/contrast
+  const base = 28, amp = 8, spacing = base + amp * (breathValue - 0.5);
+  const soft = 0.65 - 0.25*glimmer;
+
+  const grad = g.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0, `oklch(0.18 0.04 ${hue})`);
+  grad.addColorStop(1, `oklch(0.08 0.03 ${hue+10})`);
+  g.fillStyle = grad; g.fillRect(0,0,w,h);
+
+  g.globalAlpha = 0.22 + 0.2*glimmer;
+  g.globalCompositeOperation = "screen";
+  for (let y=0; y<h+spacing; y+=spacing) {
+    const a = 0.55 + 0.35*Math.sin((y/h)*Math.PI);
+    g.fillStyle = `oklch(${0.88*a} ${0.02} ${hue})`;
+    g.fillRect(0, y, w, spacing*soft);
+  }
+  g.globalCompositeOperation = "source-over";
+  g.globalAlpha = 1;
+}

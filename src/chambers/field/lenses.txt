@@ -1,0 +1,13 @@
+// src/chambers/field/lenses.ts
+import type { DayPhase } from "@/engine/EngineClock";
+
+export type Lens = "observatory"|"garden"|"witness"|"organ";
+
+export function lensForPhase(p: DayPhase): Lens {
+  switch (p) {
+    case "dawn": return "observatory"; // horizons
+    case "day":  return "garden";      // growth
+    case "dusk": return "witness";     // radial
+    case "night":default: return "organ"; // tissue/peristalsis
+  }
+}
