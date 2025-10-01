@@ -1,11 +1,11 @@
-// Minimal grayscale breathing bands — WebGL2 (Observatory, modular)
+// Minimal grayscale breathing bands — WebGL2 (multi-shader, modular)
 
 import VS from "@systems/bands/shaders/vert.glsl?raw";
-import FS from "@systems/bands/shaders/frag.glsl?raw";
 import { createProgram, getUniforms } from "@systems/bands/GL";
 import { Dynamics, type BreathSample } from "@systems/bands/Dynamics";
 import { PRESETS, ObservatoryProfile, lerpPreset } from "@systems/bands/Presets";
 import type { LensKey } from "@systems/bands/BandTypes";
+import { ShaderRegistry } from "@systems/bands/ShaderRegistry";
 
 export class BandLayer {
   private canvas!: HTMLCanvasElement;
@@ -16,26 +16,19 @@ export class BandLayer {
   private pxW = 1;
   private pxH = 1;
 
+  // Lens & presets
   private currentLens: LensKey = "observatory";
   private fromPreset = PRESETS.observatory;
-  private toPreset = PRESETS.observatory;
-  private blendT = 1;            // 0..1 (1 means no active fade)
-  private blendDur = 0.6;        // seconds
-
+  private toPreset   = PRESETS.observatory;
+  private blendT = 1;           // 0..1
+  private blendDur = 0.6;       // seconds
   private P = PRESETS.observatory;
+
+  // Shader profile for the active lens
   private profile = ObservatoryProfile;
 
   private dyn = new Dynamics({ K: 0.65, tau: 0.22, tauPause: 0.10, bandFreq: PRESETS.observatory.bandFreq });
   private breath: BreathSample = { value: 0.5, phase: "pause", bpm: 6 };
-
-  setLens(lens: LensKey, fadeSec = 0.6) {
-    if (lens === this.currentLens && this.blendT >= 1) return;
-    this.currentLens = lens;
-    this.fromPreset = this.P;                  // start from current effective
-    this.toPreset = PRESETS[lens];           // target preset
-    this.blendT = 0;
-    this.blendDur = Math.max(0.001, fadeSec);
-  }
 
   getDebug() {
     const s = this.dyn.get();
@@ -50,6 +43,9 @@ export class BandLayer {
       period: 1 / this.P.bandFreq,
       phaseTime: s.phaseTime,
       phaseDur: s.phaseDur,
+      lens: this.currentLens,
+      blendT: this.blendT,
+      profile: this.profile.name,
     };
   }
 
@@ -62,14 +58,29 @@ export class BandLayer {
     if (!gl) throw new Error("BandLayer: WebGL2 unavailable");
     this.gl = gl;
 
-    this.prog = createProgram(gl, VS, FS);
-    gl.useProgram(this.prog);
-
-    this.u = getUniforms(gl, this.prog, [...this.profile.uniforms]);
-
-    // WebGL2 requires a VAO even with gl_VertexID
+    // WebGL2 requires a VAO even for gl_VertexID
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
+
+    // Build initial program from the current lens entry
+    this.loadProfile(this.currentLens);
+  }
+
+  private loadProfile(lens: LensKey) {
+    const gl = this.gl;
+    const entry = ShaderRegistry[lens];
+
+    // (Re)create program with same VS but lens-specific FS
+    const newProg = createProgram(gl, VS, entry.fs);
+
+    // Replace program + uniform cache
+    if (this.prog) gl.deleteProgram(this.prog);
+    this.prog = newProg;
+    gl.useProgram(this.prog);
+    this.profile = entry.profile;
+
+    // Requery uniforms for this profile’s shader
+    this.u = getUniforms(gl, this.prog, [...this.profile.uniforms]);
   }
 
   resize(cssW: number, cssH: number, dpr: number) {
@@ -84,13 +95,33 @@ export class BandLayer {
     this.dyn.setBreath(b);
   }
 
-update(dt: number) {
-    // Advance blend if a fade is active
+  // Public lens switch with smooth preset blend and (if needed) shader swap
+  setLens(lens: LensKey, fadeSec = 0.6) {
+    if (lens === this.currentLens && this.blendT >= 1) return;
+
+    // Start preset blend from current effective P to target
+    this.fromPreset = this.P;
+    this.toPreset   = PRESETS[lens];
+    this.blendT = 0;
+    this.blendDur = Math.max(0.001, fadeSec);
+
+    // If the shader profile differs, swap program immediately
+    const nextEntry = ShaderRegistry[lens];
+    const nextProfileName = nextEntry.profile.name;
+    if (nextProfileName !== this.profile.name) {
+      this.loadProfile(lens);
+    }
+
+    this.currentLens = lens;
+  }
+
+  update(dt: number) {
+    // Blend presets over time
     if (this.blendT < 1) {
       this.blendT = Math.min(1, this.blendT + dt / this.blendDur);
       this.P = lerpPreset(this.fromPreset, this.toPreset, this.blendT);
     }
-    // Ensure Dynamics wraps with the current (possibly blended) bandFreq
+    // Keep Dynamics wrapping in sync with current bandFreq
     this.dyn.setBandFreq(this.P.bandFreq);
 
     // Advance motion
@@ -107,6 +138,7 @@ update(dt: number) {
 
     const s = this.dyn.get();
 
+    // Bind the (possibly blended) preset to the active shader
     this.profile.bind(gl, this.u, this.P, {
       scroll: s.scroll,
       // size: { w: this.pxW, h: this.pxH }, // only if your frag uses u_resolution

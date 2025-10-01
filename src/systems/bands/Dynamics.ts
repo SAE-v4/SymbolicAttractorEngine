@@ -80,10 +80,9 @@ export class Dynamics {
     return this.s;
   }
 
-  setBandFreq(freq: number) {
-    // used only for wrapping; keep it sane
-    (this as any).p.bandFreq = Math.max(1e-6, freq);
-  }
+setBandFreq(freq: number) {
+  (this as any).p.bandFreq = Math.max(1e-6, freq);
+}
 
   get() { return this.s; }
 }

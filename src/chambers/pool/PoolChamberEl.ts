@@ -5,7 +5,7 @@ import type { LensKey } from "@systems/bands/BandTypes";
 
 
 export class PoolChamberEl extends HTMLElement {
-  static get observedAttributes() { return ["debug"]; }  // <-- add debug
+  static get observedAttributes() { return ["debug", "lens"]; }
 
   private dpr = Math.max(1, devicePixelRatio || 1);
   private bands = new BandLayer();
@@ -22,6 +22,15 @@ export class PoolChamberEl extends HTMLElement {
   private debug = false;
   private hudEl!: HTMLDivElement;
 
+  private lensLock?: LensKey;      // when set, disables auto routing
+  private prevPhase: BreathSample["phase"] = "inhale";
+  private lensFadeSec = 0.8;
+  private phaseToLens: Record<BreathSample["phase"], LensKey> = {
+    inhale: "observatory",
+    exhale: "observatory",
+    pause: "witness",
+  };
+
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -31,6 +40,10 @@ export class PoolChamberEl extends HTMLElement {
     if (name === "debug") {
       this.debug = v !== null;
       if (this.hudEl) this.hudEl.style.display = this.debug ? "block" : "none";
+    }
+    if (name === "lens-lock") {
+      this.lensLock = (v as LensKey) || undefined;
+      if (this.lensLock) this.bands.setLens(this.lensLock, this.lensFadeSec);
     }
   }
 
@@ -65,6 +78,11 @@ export class PoolChamberEl extends HTMLElement {
 
     // initialize debug attribute if present
     this.attributeChangedCallback("debug", null, this.getAttribute("debug"));
+    this.attributeChangedCallback("lens-lock", null, this.getAttribute("lens-lock"));
+
+    // Set an initial lens (lock wins; else route by current phase)
+    const initialLens = this.lensLock ?? this.phaseToLens[this._breath.phase];
+    this.bands.setLens(initialLens, 0.0); // no fade at boot
   }
 
   disconnectedCallback() { this.ro?.disconnect(); }
@@ -81,7 +99,19 @@ export class PoolChamberEl extends HTMLElement {
     this._dayPhase = phase;
   }
 
-  setBreath(b: BreathSample) { this._breath = b; }
+ setBreath(b: BreathSample) {
+    // Phase edge detection
+    if (b.phase !== this._breath.phase) {
+      this.prevPhase = this._breath.phase;
+      // Auto lens routing unless locked
+      if (!this.lensLock) {
+        const nextLens = this.phaseToLens[b.phase];
+        this.bands.setLens(nextLens, this.lensFadeSec);
+      }
+    }
+    this._breath = b;
+  }
+
 
   update(tick: EngineTick) {
     this._lastDt = tick.dt || 0.016;
@@ -97,8 +127,8 @@ export class PoolChamberEl extends HTMLElement {
     let phase: BreathSample["phase"] = "inhale";
     let value = 0;
     if (t < period) { phase = "inhale"; value = t / period; }
-    else if (t < 2*period) { phase = "pause"; value = 0.5; }
-    else { phase = "exhale"; value = (t - 2*period) / period; }
+    else if (t < 2 * period) { phase = "pause"; value = 0.5; }
+    else { phase = "exhale"; value = (t - 2 * period) / period; }
     this._breath = { value, phase, bpm: 60 / (period * 2) };
   }
 
@@ -117,6 +147,7 @@ export class PoolChamberEl extends HTMLElement {
     const d = this.bands.getDebug();
     const lines = [
       `phase:  \t${d.phase}`,
+     `lens:    \t${(d as any).lens ?? "?"}  blendT=${(d as any).blendT?.toFixed?.(2) ?? "-"}`,
       `p_int:  \t${d.phase === "pause" ? "-" : d.pInt.toFixed(3)}`,
       `speed:  \t${d.speed.toFixed(3)} h/s`,
       `scroll: \t${d.scroll.toFixed(3)} (period=${d.period.toFixed(3)})`,
@@ -128,7 +159,7 @@ export class PoolChamberEl extends HTMLElement {
   }
 
   // compatibility stub
-  disturb(_kind: PoolKind, _x: number, _y: number, _strength = 1, _dir?: "cw" | "ccw") {}
+  disturb(_kind: PoolKind, _x: number, _y: number, _strength = 1, _dir?: "cw" | "ccw") { }
 }
 
 if (!customElements.get("sae-pool-chamber")) {

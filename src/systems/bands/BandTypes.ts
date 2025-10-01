@@ -24,12 +24,16 @@ export interface BandPreset {
 // How a shader variant declares + binds its uniforms.
 // Keep it simple: a fixed uniform list and a bind() that sets values.
 export interface ShaderProfile {
-  name: string;                        // e.g. "observatory"
-  uniforms: readonly string[];         // must match frag.glsl
+  name: string;
+  uniforms: readonly string[];
   bind(
     gl: WebGL2RenderingContext,
     u: Record<string, WebGLUniformLocation | null>,
     preset: BandPreset,
-    extras: { scroll: number; size?: { w: number; h: number } }
+    extras: {
+      scroll: number;
+      size?: { w: number; h: number };
+      phaseAmt?: number;           // NEW: 0..1, mid-phase energy (sin π·p_int)
+    }
   ): void;
 }
