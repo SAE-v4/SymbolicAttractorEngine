@@ -13,7 +13,11 @@ uniform float u_phaseAmt;     // 0..1 (mid-phase energy)
 uniform float u_curvature;    // 0=straight; >0 adds gentle bowing
 uniform vec2  u_center;       // curvature center
 
-// Helpers
+// NEW: slow day drift (same API as observatory)
+uniform float u_dayLumDrift;            // -0.05..+0.05
+uniform float u_dayVignetteDrift;       // -0.08..+0.08
+uniform float u_gammaDrift;             // -0.10..+0.10
+
 float vign(vec2 uv, float v){
   if (v <= 0.) return 1.;
   float r = distance(uv, vec2(0.5)) / distance(vec2(0.0), vec2(0.5));
@@ -24,14 +28,12 @@ void main() {
   vec2 uv = v_uv;
   float x = uv.x, y = uv.y;
 
-  // gentle curvature: displace y by a small function of radial distance
-  // keeps bands "nearly horizontal" but slightly bowed toward center
+  // Curvature (consistent with Observatory)
   float dx = x - u_center.x;
   float dy = y - u_center.y;
   float r2 = dx*dx + dy*dy;
+  float yWarp = y - u_curvature * (r2 - 0.25);
 
-  // curvature model: small quadratic bowing scaled by u_curvature
-  float yWarp = y - u_curvature * (r2 - 0.25); // 0.25 centers effect around mid-frame
   // drifted coordinate with small tilt
   float U = yWarp + u_bandTilt * (x - 0.5) + u_scroll;
 
@@ -51,8 +53,13 @@ void main() {
   float phaseAlpha = clamp(u_phaseAlpha * u_phaseAmt, 0.0, 1.0);
   lum = mix(lum, u_phaseValue, phaseAlpha * m);
 
-  // Post
-  lum *= vign(uv, u_vignette);
-  lum = pow(clamp(lum, 0.0, 1.0), 1.0 / max(u_gamma, 1e-3));
+  // Slow day drift (macro)
+  lum += u_dayLumDrift;
+  float vignette = clamp(u_vignette + u_dayVignetteDrift, 0.0, 1.0);
+  lum *= vign(uv, vignette);
+
+  float gamma = max(u_gamma + u_gammaDrift, 1e-3);
+  lum = pow(clamp(lum, 0.0, 1.0), 1.0 / gamma);
+
   fragColor = vec4(vec3(lum), 1.0);
 }
