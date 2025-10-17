@@ -1,0 +1,133 @@
+<!-- THINKER · Arc+Web Walls Mockup (800x800) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <!-- Soft glow -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Warm / Cool gradients for eyes -->
+    <radialGradient id="warm" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#ffda6b" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ff7a21" stop-opacity="0.15"/>
+    </radialGradient>
+    <radialGradient id="cool" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#b2b6ff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#4b5bd6" stop-opacity="0.15"/>
+    </radialGradient>
+
+    <!-- Subtle wall sheen -->
+    <linearGradient id="wallSheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a7b6c9" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#6b7c8f" stop-opacity="0.05"/>
+    </linearGradient>
+
+    <!-- Eye shape (almond) as reusable symbol -->
+    <symbol id="eye" viewBox="-50 -20 100 40">
+      <path d="M -50 0 Q 0 -20 50 0 Q 0 20 -50 0 Z" fill="url(#warm)"/>
+      <circle cx="0" cy="0" r="7" fill="#2a1b00" opacity="0.85"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#ffb33e" stroke-opacity="0.6"/>
+    </symbol>
+
+    <!-- Cool eye variant -->
+    <symbol id="eyeCool" viewBox="-50 -20 100 40">
+      <path d="M -50 0 Q 0 -20 50 0 Q 0 20 -50 0 Z" fill="url(#cool)"/>
+      <circle cx="0" cy="0" r="7" fill="#0d1133" opacity="0.9"/>
+      <circle cx="0" cy="0" r="14" fill="none" stroke="#92a0ff" stroke-opacity="0.7"/>
+    </symbol>
+
+    <!-- Pulse animation (breath) -->
+    <style>
+      @keyframes breathe {
+        0%   { opacity: .85; transform: scale(0.985); }
+        50%  { opacity: 1;   transform: scale(1.015); }
+        100% { opacity: .85; transform: scale(0.985); }
+      }
+      @keyframes drift {
+        0%   { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 400; }
+      }
+      .breath { animation: breathe 6s ease-in-out infinite; transform-origin: 400px 400px; }
+      .arc    { stroke: url(#wallSheen); stroke-width: 2; fill: none; opacity: 0.45; }
+      .web    { stroke: #d7c2ff; stroke-opacity: .25; stroke-width: 1.6; fill: none; filter: url(#glow); }
+      .webFlow{ stroke-dasharray: 10 14; animation: drift 18s linear infinite; }
+      .eye    { filter: url(#glow); }
+      .phrase { filter: url(#glow); }
+      text { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="800" fill="#102236"/>
+  <radialGradient id="bgGlow" cx="50%" cy="50%" r="60%">
+    <stop offset="0%" stop-color="#1e2f4a"/>
+    <stop offset="100%" stop-color="#0c1a2a"/>
+  </radialGradient>
+  <rect width="800" height="800" fill="url(#bgGlow)"/>
+
+  <!-- Concentric Witness arcs -->
+  <g id="arcs" class="breath">
+    <circle class="arc" cx="400" cy="400" r="320"/>
+    <circle class="arc" cx="400" cy="400" r="260"/>
+    <circle class="arc" cx="400" cy="400" r="200"/>
+    <circle class="arc" cx="400" cy="400" r="140"/>
+    <circle class="arc" cx="400" cy="400" r="90"/>
+  </g>
+
+  <!-- Metabolic branching web (hand-drawn-ish splines) -->
+  <g id="web" class="breath">
+    <!-- major branches -->
+    <path class="web" d="M120,520 C220,480 260,430 320,400 C380,370 460,340 520,280" />
+    <path class="web webFlow" d="M680,560 C600,520 520,470 480,420 C440,370 420,310 400,240" />
+    <path class="web" d="M140,240 C220,300 290,330 360,360 C430,390 520,420 660,460" />
+    <path class="web webFlow" d="M220,640 C300,600 340,560 380,520 C420,480 470,450 600,400" />
+    <!-- secondary filaments -->
+    <path class="web" d="M260,230 C310,280 330,320 350,350" />
+    <path class="web" d="M540,220 C500,280 470,320 430,350" />
+    <path class="web" d="M200,420 C270,410 320,410 380,400" />
+    <path class="web" d="M420,590 C460,560 480,520 520,500" />
+  </g>
+
+  <!-- Eyes at arc × web intersections (approximate placements) -->
+  <g id="eyes" class="breath">
+    <!-- warm (outward gaze) -->
+    <g class="eye" transform="translate(590,470) rotate(-10)"><use href="#eye"/></g>
+    <g class="eye" transform="translate(515,310) rotate(12)"><use href="#eye"/></g>
+    <g class="eye" transform="translate(315,365) rotate(-6)"><use href="#eye"/></g>
+    <g class="eye" transform="translate(245,515) rotate(14)"><use href="#eye"/></g>
+
+    <!-- cool (inward gaze) -->
+    <g class="eye" transform="translate(445,395) rotate(0)"><use href="#eyeCool"/></g>
+    <g class="eye" transform="translate(360,520) rotate(-18)"><use href="#eyeCool"/></g>
+    <g class="eye" transform="translate(290,300) rotate(10)"><use href="#eyeCool"/></g>
+  </g>
+
+  <!-- Resonance lines from selected eyes to centre -->
+  <g id="resonance" class="breath" stroke="#ffcf6a" stroke-opacity=".45" stroke-width="1.5">
+    <line x1="590" y1="470" x2="400" y2="400"/>
+    <line x1="315" y1="365" x2="400" y2="400"/>
+    <line x1="360" y1="520" x2="400" y2="400" stroke="#96a4ff" stroke-opacity=".55"/>
+  </g>
+
+  <!-- Phrase node (centre) -->
+  <g id="phraseNode" class="breath phrase" transform="translate(400,400)">
+    <circle r="34" fill="#0b1422" stroke="#ffd37b" stroke-opacity=".7" stroke-width="2"/>
+    <circle r="62" fill="none" stroke="#ffd37b" stroke-opacity=".25"/>
+    <circle r="88" fill="none" stroke="#94a2ff" stroke-opacity=".2"/>
+    <!-- placeholder glyph/word -->
+    <text x="0" y="7" font-size="22" text-anchor="middle" fill="#ffd37b" opacity=".95">lemma</text>
+  </g>
+
+  <!-- Subtle solar core suggestion -->
+  <g id="solarCore" opacity=".35" class="breath">
+    <radialGradient id="core" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#ffd36f" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <circle cx="400" cy="400" r="200" fill="url(#core)"/>
+  </g>
+</svg>
