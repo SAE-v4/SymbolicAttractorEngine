@@ -9,31 +9,12 @@
 </head>
 
 <body>
-<engine-root>
-  <!-- lock to horizons + test palette + HUD -->
-<sae-pool-chamber debug ></sae-pool-chamber>
-
-
-</engine-root>
-
-  <!-- <sae-card-chamber>
-    <sae-card-bg slot="bg" key="witness"></sae-card-bg>
-    <sae-being-aura slot="aura"></sae-being-aura>
-    <sae-witness-radar slot="radar"></sae-witness-radar>
-    <sae-focus-vessel slot="vessel" glyph="heart"></sae-focus-vessel>
-  </sae-card-chamber> -->
-
-  <!-- Field overview -->
-  <!-- <sae-field-chamber>
-  <sae-field-bg slot="bg"></sae-field-bg>
-  <sae-field-witness slot="walls"></sae-field-witness> -->
-
-  <!-- gesture layer LAST so it paints above -->
-  <!-- <sae-field-gesture-layer slot="ground"></sae-field-gesture-layer>
-</sae-field-chamber> -->
-
-  <!-- <sae-pool-chamber></sae-pool-chamber>
-  </engine-root> -->
+<sae-world-root>
+  <sae-layer-garden></sae-layer-garden>
+  <sae-layer-tree></sae-layer-tree>
+  <sae-layer-hive></sae-layer-hive>
+  <sae-layer-ui></sae-layer-ui>
+</sae-world-root>
   <script type="module" src="/src/main.ts"></script>
 </body>
 
