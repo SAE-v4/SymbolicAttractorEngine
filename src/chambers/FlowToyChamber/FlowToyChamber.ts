@@ -1,5 +1,5 @@
 // src/chambers/FlowToyChamber.ts
-import type { EngineTick, GesturePoint} from "@/types/Core";
+import type { EngineTick, GesturePoint } from "@/types/core";
 import { GestureCapture } from "@/input/GestureCapture";
 import { analyzeGesture } from "@/input/analyzeGesture";
 
@@ -21,12 +21,12 @@ type Dot = {
 };
 
 type GestureMod = {
-  p: { x: number; y: number };
-  radius: number;       // px
-  spinDelta: number;    // signed, e.g. -0.6..+0.6 (multiplier-ish)
-  softenRadial: number; // 0..1 (optional lens)
-  ttl: number;          // seconds remaining
-  tMax: number;         // initial ttl
+    p: { x: number; y: number };
+    radius: number;       // px
+    spinDelta: number;    // signed, e.g. -0.6..+0.6 (multiplier-ish)
+    softenRadial: number; // 0..1 (optional lens)
+    ttl: number;          // seconds remaining
+    tMax: number;         // initial ttl
 };
 
 
@@ -82,6 +82,14 @@ export class FlowToyChamber extends HTMLElement {
     private readonly INPUT_LENS_RADIUS = 260;  // how big the “focus” area is
     private readonly LENS_STRENGTH = 0.55;     // 0..1, how much it neutralises radial
 
+    private gesture = new GestureCapture();
+    private mods: GestureMod[] = [];
+
+    // tuning knobs for gesture ripple feel
+    private readonly MOD_TTL = 6.0;       // seconds
+    private readonly MOD_RADIUS = 260;    // px
+    private readonly MOD_SPIN_MAX = 0.65; // max spin modulation
+    private readonly MOD_SOFTEN = 0.35;   // radial confidence softening near gesture
 
     constructor() {
         super();
@@ -126,24 +134,71 @@ export class FlowToyChamber extends HTMLElement {
             this.pointerDown = true;
             this.pointer = toLocal(e);
             this.setPointerCapture?.(e.pointerId);
+
+            // start gesture trace
+            this.gesture.start(this.pointer.x, this.pointer.y);
         }, { passive: true });
 
         this.addEventListener("pointermove", (e) => {
             this.pointer = toLocal(e);
+
+            // capture trace while active
+            this.gesture.move(this.pointer.x, this.pointer.y);
         }, { passive: true });
 
         const end = (e: PointerEvent) => {
             this.pointerDown = false;
             this.releasePointerCapture?.(e.pointerId);
-            // keep last pointer position as “attention”, or null it out:
+
+            if (this.pointer) {
+                const pts = this.gesture.end(this.pointer.x, this.pointer.y);
+                if (pts && pts.length >= 6) this.onGestureEnd(pts);
+            } else {
+                this.gesture.end(0, 0);
+            }
+
+            // keep last pointer as "attention" (optional)
             // this.pointer = null;
         };
+
         this.addEventListener("pointerup", end, { passive: true });
         this.addEventListener("pointercancel", end, { passive: true });
 
-        // Resize observer is ideal, but simplest: listen to window resize
         window.addEventListener("resize", () => this.resizeToHost());
     }
+
+
+    private onGestureEnd(points: GesturePoint[]) {
+        const m = analyzeGesture(points);
+
+        // ignore weak / scribbly gestures
+        if (m.strength < 0.12) return;
+        if (m.jaggedness > 0.85) return;
+
+        // curvature is -1..+1 (sign = turn direction, magnitude = curviness)
+        // we want a signed spin impulse. Keep it subtle.
+        const signed = m.curvature; // -1..+1
+        const curvMag = Math.min(1, Math.abs(signed));
+
+        // map gesture energy:
+        const spinDelta = signed * this.MOD_SPIN_MAX * (0.35 + 0.65 * curvMag) * (0.4 + 0.6 * m.strength);
+
+        // radius can scale with gesture strength (optional)
+        const radius = this.MOD_RADIUS * (0.75 + 0.5 * m.strength);
+
+        // softenRadial makes it more lens-like (reveals braids, less “pushy”)
+        const softenRadial = this.MOD_SOFTEN * (0.35 + 0.65 * m.strength);
+
+        this.mods.push({
+            p: { x: m.centroid.x, y: m.centroid.y },
+            radius,
+            spinDelta,
+            softenRadial,
+            ttl: this.MOD_TTL,
+            tMax: this.MOD_TTL,
+        });
+    }
+
 
     private resizeToHost() {
         const r = this.getBoundingClientRect();
@@ -175,9 +230,9 @@ export class FlowToyChamber extends HTMLElement {
 
         this.centres = [
             // Rooting (slightly inward)
-            { id: "root", p: { x: cx - Rx, y: cy + Ry * 0.4 }, w: 1.0, spin: 0.70, radial: -0.10, sigma: sigmaLong, phase: 0.00 },
+            { id: "root", p: { x: cx - Rx, y: cy + Ry * 0.4 }, w: 1.0, spin: 0.70, radial: 0.10, sigma: sigmaLong, phase: 0.00 },
             // Shoots (slightly outward)
-            { id: "shoot", p: { x: cx + Rx * 0.9, y: cy - Ry * 0.5 }, w: 1.0, spin: -0.45, radial: +0.10, sigma: sigmaLong, phase: 0.33 },
+            { id: "shoot", p: { x: cx + Rx * 0.9, y: cy - Ry * 0.5 }, w: 1.0, spin: 0.45, radial: +0.10, sigma: sigmaLong, phase: 0.33 },
             // Branching (neutral)
             { id: "branch", p: { x: cx + Rx * 0.1, y: cy + Ry * 0.9 }, w: 0.9, spin: 0.80, radial: 0.00, sigma: sigmaMid, phase: 0.66 },
             // Weaving (slightly inward, lower spin)
@@ -198,6 +253,25 @@ export class FlowToyChamber extends HTMLElement {
 
     /** Core: field is sum of centre contributions (plus gentle input reweight) */
     private fieldAt(p: Vec2): Vec2 {
+        let modSpin = 0;     // signed
+        let modSoften = 0;   // 0..1
+
+        for (const gm of this.mods) {
+            const d = len(sub(gm.p, p));
+            const x = 1.0 - smoothstep(gm.radius * 0.35, gm.radius, d); // 0..1 near mod
+            if (x <= 0) continue;
+
+            // ease with remaining life so it fades out gracefully
+            const life = gm.ttl / gm.tMax;        // 1..0
+            const k = x * (0.35 + 0.65 * life);   // strong at birth, then fades
+
+           // modSpin += gm.spinDelta * k;
+           modSpin = Math.max(-1.2, Math.min(1.2, modSpin));
+
+            modSoften = Math.max(modSoften, gm.softenRadial * k);
+        }
+
+
         let v: Vec2 = { x: 0, y: 0 };
         // 0 far away, 1 near pointer (so it affects the local space you’re touching)
         let lens = 0;
@@ -218,6 +292,7 @@ export class FlowToyChamber extends HTMLElement {
             const R = norm(dp);
             const T = perp(R);
 
+
             // base influence with soft falloff
             let w = c.w * falloff(d, c.sigma);
 
@@ -232,15 +307,20 @@ export class FlowToyChamber extends HTMLElement {
 
             // Tangential (spin) + radial (drift)
             // Vegetal: keep radial small; let breath bias inward slightly.
-            const spin = c.spin;
+            // Apply gesture spin modulation (kaleidoscope ripple)
+            // Clamp so one gesture can't fully invert the world unless you want it to.
+            const spinMul = clamp01(1 + modSpin); // 0..1 if modSpin negative; (see note below)
+            const spin = c.spin * Math.max(0.15, 1 + modSpin);
+            // Two “lenses” can soften radial confidence:
+            // - pointer lens (continuous while hovering/holding)
+            // - gesture soften (ephemeral ripple)
             const radialBase = c.radial + breathInwardBias;
-
-            // Lens makes radial less “confident” near pointer (toward 0), revealing braids.
-            const radial = lerp(radialBase, 0.0, lens * this.LENS_STRENGTH);
-
+            const soften = clamp01(lens * this.LENS_STRENGTH + modSoften);
+            const radial = lerp(radialBase, 0.0, soften);
 
             v = add(v, mul(T, spin * w));
             v = add(v, mul(R, radial * w));
+
         }
 
         return v;
@@ -249,6 +329,9 @@ export class FlowToyChamber extends HTMLElement {
     private step(dt: number) {
         const dtSec = Math.max(0, dt);
         if (dtSec <= 0) return;
+
+        for (const mod of this.mods) mod.ttl -= dt;
+        this.mods = this.mods.filter(m => m.ttl > 0);
 
         for (const d of this.dots) {
             // Sample field as acceleration-like term (scaled)
