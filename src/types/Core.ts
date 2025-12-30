@@ -1,4 +1,5 @@
 // src/types/Core.ts
+export interface Vec2 { x: number; y: number; }
 
 // Breath phases used across the app
 export type BreathPhase = "inhale" | "pause" | "exhale";
@@ -29,3 +30,16 @@ export interface EngineTick {
   breath: BreathSample;
 }
 
+export interface GesturePoint extends Vec2 {
+  t: number;        // performance.now()
+}
+
+export interface GestureMetrics {
+  strength: number;   // 0..1
+  centroid: Vec2;
+
+  curvature: number;  // -1..+1 (sign = turn direction, magnitude = curviness)
+  jaggedness: number; // 0..1
+  speed: number;      // 0..1
+  gesture?: GestureMetrics; 
+}

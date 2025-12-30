@@ -1,5 +1,7 @@
 // src/chambers/FlowToyChamber.ts
-import type { EngineTick } from "@/types/Core";
+import type { EngineTick, GesturePoint} from "@/types/Core";
+import { GestureCapture } from "@/input/GestureCapture";
+import { analyzeGesture } from "@/input/analyzeGesture";
 
 type Vec2 = { x: number; y: number };
 
@@ -17,6 +19,16 @@ type Dot = {
     p: Vec2;
     v: Vec2;
 };
+
+type GestureMod = {
+  p: { x: number; y: number };
+  radius: number;       // px
+  spinDelta: number;    // signed, e.g. -0.6..+0.6 (multiplier-ish)
+  softenRadial: number; // 0..1 (optional lens)
+  ttl: number;          // seconds remaining
+  tMax: number;         // initial ttl
+};
+
 
 function clamp01(x: number) { return Math.max(0, Math.min(1, x)); }
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
